@@ -5,7 +5,7 @@ Topology Creation
 =================
 To start a simple topology with ofsoftswitch and 2 nodes,
 
-'''
+```
 click@vm-click:~/695/mininet$ sudo mn --topo single,2 --mac --switch user --controller remote
 *** Creating network
 *** Adding controller
@@ -113,13 +113,13 @@ tap0      Link encap:Ethernet  HWaddr 00:00:00:00:00:01
           TX packets:28 errors:0 dropped:0 overruns:0 carrier:0
           collisions:0 txqueuelen:500 
           RX bytes:0 (0.0 B)  TX bytes:4879 (4.8 KB)
-'''
+```
 
 *******************************************************************************
 
 dpctl examples
 ==============
-'''
+```
 click@vm-click:~/695/csc695-ofss-dev$ dpctl --help
 dpctl: OpenFlow switch management utility
 usage: dpctl [OPTIONS] SWITCH COMMAND [ARG...]
@@ -217,28 +217,32 @@ stat_req{type="port-desc", flags="0x0"}
 
 RECEIVED (xid=0xF0FF00F0):
 stat_repl{type="port-desc", flags="0x0"{no="1", hw_addr="9e:23:f2:70:d5:8e", name="s1-eth1", config="0x0", state="0x4", curr="0x840", adv="0x0", supp="0x0", peer="0x0", curr_spd="10485760kbps", max_spd="0kbps"}, {no="2", hw_addr="52:93:a1:6c:e6:aa", name="s1-eth2", config="0x0", state="0x4", curr="0x840", adv="0x0", supp="0x0", peer="0x0", curr_spd="10485760kbps", max_spd="0kbps"}, {no="local", hw_addr="00:00:00:00:00:01", name="tap:", config="0x0", state="0x4", curr="0x802", adv="0x0", supp="0x0", peer="0x0", curr_spd="10240kbps", max_spd="0kbps"}}}
-'''
+```
 
 *******************************************************************************
 To enable ARP resoulution between h1 & h2
 =========================================
 
 1. Verify ping doesn't go through between h1 & h2
+
+```
 mininet> h1 ping h2
 PING 10.0.0.2 (10.0.0.2) 56(84) bytes of data.
 From 10.0.0.1 icmp_seq=1 Destination Host Unreachable
 From 10.0.0.1 icmp_seq=2 Destination Host Unreachable
 From 10.0.0.1 icmp_seq=3 Destination Host Unreachable
-
+```
 
 2. Verify ARP table of hosts. It should either be incomplete or empty.
+```
 mininet> h1 arp -n
 Address                  HWtype  HWaddress           Flags Mask            Iface
 10.0.0.2                         (incomplete)                              h1-eth0
-
+```
 
 3. Install pair of ARP flows to let ofss forward traffic between the nodes.
 
+```
 click@vm-click:~/695/csc695-ofss-dev$ sudo dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=1,eth_type=0x0806 apply:output:2
 
 SENDING (xid=0xF0FF00F0):
@@ -260,11 +264,11 @@ stat_req{type="flow", flags="0x0", table="0", oport="any", ogrp="any", cookie=0x
 
 RECEIVED (xid=0xF0FF00F0):
 stat_repl{type="flow", flags="0x0", stats=[{table="0", match="oxm{in_port="1", eth_type="0x806"}", dur_s="59", dur_ns="996000", prio="32768", idle_to="0", hard_to="0", cookie="0x0", pkt_cnt="6", byte_cnt="252", insts=[apply{acts=[out{port="2"}]}]}, {table="0", match="oxm{in_port="2", eth_type="0x806"}", dur_s="2", dur_ns="765000", prio="32768", idle_to="0", hard_to="0", cookie="0x0", pkt_cnt="0", byte_cnt="0", insts=[apply{acts=[out{port="1"}]}]}]}
-
+```
 
 4. Now ping h2 from h1. Ping should fail, but the ARPs should be resolved.
 
-'''
+```
 mininet> h1 arp -n
 Address                  HWtype  HWaddress           Flags Mask            Iface
 10.0.0.2                 ether   00:00:00:00:00:02   C                     h1-eth0
@@ -272,16 +276,16 @@ Address                  HWtype  HWaddress           Flags Mask            Iface
 mininet> h2 arp -n
 Address                  HWtype  HWaddress           Flags Mask            Iface
 10.0.0.1                 ether   00:00:00:00:00:01   C                     h2-eth0
-'''
+```
 
 5. Now, install flows to enable ping traffic to pass thru for exactly 10 seconds. 
 Do a continuos ping. Pings should fail after 10 seconds.
 
+```
 click@vm-click:~/695/csc695-ofss-dev$ sudo dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=1,eth_type=0x0800,ip_proto=1,ip_src=10.0.0.1,ip_dst=10.0.0.2 apply:output:2
 
 SENDING (xid=0xF0FF00F0):
 flow_mod{table="0", cmd="add", cookie="0x0", mask="0x0", idle="0", hard="0", prio="32768", buf="none", port="any", group="any", flags="0x0", match=oxm{in_port="1", eth_type="0x800", ipv4_src="10.0.0.1", ipv4_dst="10.0.0.2", ip_proto="1"}, insts=[apply{acts=[out{port="2"}]}]}
-
 
 OK.
 
@@ -289,7 +293,6 @@ click@vm-click:~/695/csc695-ofss-dev$ sudo dpctl unix:/tmp/s1 flow-mod cmd=add,t
 
 SENDING (xid=0xF0FF00F0):
 flow_mod{table="0", cmd="add", cookie="0x0", mask="0x0", idle="0", hard="0", prio="32768", buf="none", port="any", group="any", flags="0x0", match=oxm{in_port="2", eth_type="0x800", ipv4_src="10.0.0.2", ipv4_dst="10.0.0.1", ip_proto="1"}, insts=[apply{acts=[out{port="1"}]}]}
-
 
 OK.
 
@@ -323,7 +326,7 @@ PING 10.0.0.1 (10.0.0.1) 56(84) bytes of data.
 --- 10.0.0.1 ping statistics ---
 5 packets transmitted, 5 received, 0% packet loss, time 4006ms
 rtt min/avg/max/mdev = 0.157/0.424/0.606/0.183 ms
-'''
+```
 
 *******************************************************************************
 
