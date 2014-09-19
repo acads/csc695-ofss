@@ -9,7 +9,6 @@ Datapath Design
 This is verbatim text from the email sent by Zoltan Lajos, Ericsson Research.
 
 ----------------Email Snip Start----------------
-```
 The switch is using regular packet/raw sockets. See this for an explanation: 
 http://yusufonlinux.blogspot.hu/2010/11/data-link-access-and-zero-copy.html. 
 This is essentially similar to using the libpcap library. But we already got 
@@ -46,45 +45,62 @@ and created a packet structure that contains the original packet and the
 metadata fields. Then this is passed to the pipeline_process_packet function 
 (https://github.com/CPqD/ofsoftswitch13/blob/master/udatapath/dp_ports.c#L225), 
 which is basically all the OpenFlow magic...
-```
 ----------------Email Snip End----------------
 
 
-Main Functions
-==============
+Main Files and Functions
+========================
 ```
-ofsoftswitch13-master/utilities/dpctl.c
+utilities/dpctl.c
     Most of the functionality of the dpctl utility is implemented in this file.
 
-    parse_match
+    parse_match()
     Parses the incoming flow mod args in dpctl and puts them in a ofl_match 
     structure as OXM TLVs
 
-    flow_mod
+    flow_mod()
     Handles the flow-mod command in dpctl. Prepares the ofl_msg_flow_mod msg 
     and sends it over the vconn.
 
 
-    
-ofsoftswitch13-master/udatapath/pipeline.c
+udatapath/pipeline.c
     Most of the datapath implementation is contained within this file.
 
-    pipeline_handle_flow_mod
+    pipeline_handle_flow_mod()
     Called in ofss upon receiving a flow_mod msg. Validates the action set
     and installs a flow in the flow table.
 
-    flow_entry_create
+    flow_entry_create()
     Processes the flow_mod message and returns a flow_entry entry which is
     then inserted into the flow table.
 
 
-    pipeline_process_packet
+    pipeline_process_packet()
     The datapath pipeline starts here. The netdev recveives a packet from one
     of the many dp ports and does some initial processing. It then adds bunch
     of metatdata on top of the received packet and the final packet is
     handed over to this function. It's responsible to initiate pipeline
     processing (i.e., table lookups) for the received packet.
 
+
+udatapath/flow_table.c
+    Controls the flow tables of the dp. Includes code to creation, update, 
+    lookup, stats and deletion of flow tables.
+
+    flow_table_lookup()
+    Looksup the flow tables of a given table for a match against the incoming
+    pkt. After basic sanity checks, calls the core packet matching routine and
+    does some post processing such as stats updates.
+
+
+udatapath/match_std.c
+    Contains a whole bunch of match routines to match 8/16/32/48/64 bytes of a
+    packet with and without match masks.
+
+    packet_match()
+    This is the core match check routine between and is called after couple of
+    wraps from flow_table_lookup(). This takes the incming packet match fields
+    and compares them with that of the flow table entry's match fields.
 ```
 
 
@@ -106,3 +122,33 @@ struct flow_entry
     instructions and match fields.
 
 ```
+
+
+Writing New OF Experimenters
+============================
+In OpenFlow v1.3.0, vendor extensions has been renamed as expeimenters. OFSS 
+allows developers to write their own experimenters. As given in OpenFlow spec,
+an experimenter message contains three important parameters as follows:
+
+```
+/* Experimenter extension. */
+struct ofp_experimenter_header {
+    struct ofp_header header;   /* Type OFPT_EXPERIMENTER   */
+    uint32_t experimenter;      /* Experimenter ID          */
+    uint32_t exp_type;          /* Experimenter defined     */
+    
+    /* Other experimenter-defined additional data.          */
+};
+OFP_ASSERT(sizeof(struct ofp_experimenter_header) == 16);
+```
+
+In OFSS, any experimenter has to register 4 routines with the dp engine and 
+those routines will be called on the event of receiving a matching experimenter 
+message. The routines are for:
+    1. Message packing routine
+    2. Message unpacking routine
+    3. Message free routine
+    4. Message to string routine
+
+These routines can be registered at oflib-exp/ofl-exp.c file.
+
