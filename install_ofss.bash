@@ -16,7 +16,7 @@ echo "#########################################################"
 echo -e ${no_color}
 pwd
 sudo apt-get install cmake libpcap-dev libxerces-c2-dev libpcre3-dev flex \
-         bison pkg-config autoconf libtool libboost-dev
+         bison pkg-config autoconf libtool libboost-dev g++ make
 
 
 # Build NetBee libraries; ofsoftswitch uses them to parse packets.

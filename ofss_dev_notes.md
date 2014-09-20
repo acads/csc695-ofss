@@ -142,6 +142,8 @@ struct ofp_experimenter_header {
 OFP_ASSERT(sizeof(struct ofp_experimenter_header) == 16);
 ```
 
+These routines can be registered at oflib-exp/ofl-exp.c file.
+
 In OFSS, any experimenter has to register 4 routines with the dp engine and 
 those routines will be called on the event of receiving a matching experimenter 
 message. The routines are for:
@@ -150,5 +152,30 @@ message. The routines are for:
     3. Message free routine
     4. Message to string routine
 
-These routines can be registered at oflib-exp/ofl-exp.c file.
+
+Experimenters Data Structure Design
+-----------------------------------
+All experimenter messages should have the standard ofp_header follwed by
+experimenter ID and msg type. 
+
+```
+struct new_of_experimenter {
+    struct ofp_header   header;     /* standard OF header       */
+    uint32_t            vendor;     /* experimenter ID          */
+    uint32_t            subtype;    /* experimenter msg type    */
+
+    /* experimenter specific data */
+};
+```
+
+Dpctl Specific
+==============
+Almost most of the functionality is in "utilities/dpctl.c" file.
+
+The global "struct command" array holds all possible dpctl commands, their
+arugument lengths and fucntion pointer to the command handler.
+
+Adding a new command just requires command design, min and max number of args
+and writing the handler code. Once done, add an entry to the global 
+stuct command all_commands[] array.
 

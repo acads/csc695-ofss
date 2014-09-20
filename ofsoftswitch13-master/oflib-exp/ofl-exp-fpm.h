@@ -14,7 +14,8 @@
 #include "../oflib/ofl-messages.h"
 
 /* Constants */
-#define OFP_EXP_FPM_ID  0x00ABCDEF  /* FPM experimenter ID  */
+#define OFP_EXP_FPM_ID      0x00ABCDEF  /* FPM experimenter ID  */
+#define FPM_DESC_STR_LEN    255
 
 
 /* Util macros */
@@ -22,9 +23,42 @@
 
 
 /* FPM msg header */
-struct ofl_exp_fmp_header {
-    struct ofl_msg_experimenter header; /* OFP_EXP_FPM_ID   */
-    uint32_t                    type;   /* OFP_EXP_FPM_CMD* */ 
+struct fpm_header {
+    struct ofp_header   header;     /* Standard OF msg header   */
+    uint32_t            vendor;     /* Experimenter ID          */
+    uint32_t            subtype;    /* Experimenter msg type    */
+};
+OFP_ASSERT(sizeof(struuct fmp_header) == 16);
+
+
+/* FPM msg statistics */
+struct fpm_stats {
+    uint16_t    num_flows;      /* # of FPM flows   */
+    uint64_t    num_pkts;       /* total # of pkts  */
+    uint64_t    num_bytes;      /* total # of bytes */
+};
+
+
+struct fpm_match {
+    uint16_t    start;
+    uint16_t    len;
+    uchar       value[FPM_MATCH_LEN];
+};
+
+
+/* FPM msg payload - based on the msg type */
+union fpm_msg_data {
+    char                desc[FPM_DESC_STR_LEN];
+    struct fpm_match    match;
+    struct fpm_stats    stats;
+};
+
+
+/* FPM msg header and type */
+struct fpm_msg {
+    struct fpm_header   fpm_hdr;
+    uint32_t            fpm_type;
+    union   fpm_data    fpm_data;
 };
 
 
