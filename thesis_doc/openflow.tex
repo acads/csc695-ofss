@@ -1,0 +1,127 @@
+\documentclass[a4paper]{article}
+%\usepackage[utf8]{inputenc}
+
+\usepackage{fullpage}   % Reduce white space around margins
+\usepackage{graphicx}   % For including images
+\usepackage{caption}
+
+% Don't include page numbers
+% \pagenumbering{gobble}
+
+% Use one-and-half line spacing
+\linespread{1.5}
+
+\title{\vspace{-4ex}\textbf{OpenFlow}\vspace{-5ex}}
+%\author{\vspace{-7ex}Aravindhan Dhanasekaran}
+\date{September 2014}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+Before delving into OpenFlow, let us take a look at how the operations of a switch are segregated logically. Traditional switches and routers usually has three logical planes of operation:  
+
+\begin{table}[h!]
+\centering
+\begin{center}
+\begin{tabular}{|l|p{6cm}|p{6cm}|}
+\hline
+\textbf{Logical Plane} & \textbf{Use} & \textbf{Example for OSPF} \\ \hline
+Management Plane & 
+Device configuration using CLI / WebUI / SNMP & 
+Configuring router parameters and ares \\
+&  & \\
+Control Plane & 
+Used by protocols running on the switch for exchanging protocol control information with other switches in the network & 
+Router exchanging OSPF LSAs and LSDBs with other OSPF routers on the network and programs the routing tables with path information. \\
+&  & \\
+Data Plane &
+Workhorse of the switch where actual user data is forwarded. It is usually implemented in hardware and is programmed by the software running on control plane.  &
+User traffic is forwarded on the based on route table entries.  &
+\hline
+\end{tabular}
+\caption{Logical Operational Planes in a Switch}
+\label{table:1}
+\end{center}
+\end{table}
+
+In a typical vendor hardware switch, these planes are tightly coupled and most, if not all, of the hardware and software is proprietary. It would be next to impossible for independent researches and students to test their new protocols at scale on a reliable network hardware. Also, tighter integration of control and data planes has its implications on vendor interoperability due to which most of the enterprise customers are locked with a vendor.
+
+\section{OpenFlow}
+OpenFlow started as a research project in 2008 to facilitate networking systems researchers to run newer experimental protocols at scale. The core idea of OpenFlow lies in the separation of data and control paths. Post release of initial OpenFlow specification, networking industry took immense interest in that and vendors started enabling OpenFlow on their products. This lead to the formation of an official committee, Open Networking Foundation (ONF), to manage and govern OpenFlow. ONF is now responsible for OpenFlow specif cations and other related activities that falls under the purview of OpenFlow.
+
+The crux of OpenFlow lies in its ability to clearly segregate control and data path functionality in a switch. The data path is still maintained by the switch, but the control decisions are not taken by the switch anymore. Instead, they are offloaded to an entity, controller, which is connected to the switch. The controller functions as the brain of the switch and programs the switch's data path (by means of flow tables) on how to forward traffic. 
+
+\subsection{OpenFlow Terminology}
+This section gives an overview of the different terms used in OpenFlow context and their description within the context of OpenFlow.
+
+\begin{enumerate}
+\item \textbf{Ports:} represents both physical and logical ports in the data path of the switch and includes reserve ports as defined by the specification. The ports can be either used as ingress port in a match or as an egress port in an action.
+\item \textbf{Flow Entry:} is the basic unit of OpenFlow which is used to match incoming traffic and perform associated actions on that packet. It is composed of match fields, flow priority, counters, instructions, timeout values and a cookie.
+\item \textbf{Flow Tables:} are a collection of flow entries. Recent versions of OpenFlow (starting v FIXME) support multiple flow tables and thus creating a chain of flow tables, called, pipeline.
+\item \textbf{Pipeline:} represents the flow processing engine within the data path of an OpenFlow switch. It is essentially a collection of flow tables in a chained manner.
+\item \textbf{Match Fields:} are the fields in a packet header whose value is matched against the corresponding field in a flow table entry. 
+\item \textbf{Metadata:} can be written by tables in the pipeline. It is used to carry internal information from one table to the next and is stripped off before sending the packet out.
+\item \textbf{Instructions: } are part of every flow entry and they ususlly instruct the switch on what is to be done with the packets matching a flow entry. Instructions can contain write-actions, apply-actions, goto-table, metering and few more.
+\item \textbf{Controller:} interacts with the OpenFlow switch using OpenFlow protocol and is resposible for programming the flow tables and entries.
+\end{enumerate}
+
+\subsection{Pipeline Processing}
+OpenFlow pipeline consists of several flow tables , each flow table with multiple flow entries, chained together. The pipeline processing usually starts at the first table (table 0) and the processing can be taken to other tables in the pipeline using goto-table instruction (see Figure\ref{fig:of_pipeline_processing}). A packet cannot be submitted back to a table by a higher level table (table 5 cannot submit a packet to table 4), ensuring loop free pipeline processing. A switch need not support multiple tables, though; in such a switch with only one flow table, the pipeline processing is simplified to a greater extent.
+
+\begin{figure}
+\centering
+\includegraphics [height=270pt] {img_of_pipeline_processing.png}
+\caption{OpenFlow Pipeline Processing}
+\label{fig:of_pipeline_processing}
+\end{figure}
+
+\subsection{Table Miss Handling}
+At times, the incoming traffic may not match any of the flows in the flow table and in such cases the switch would not know how to handle such packets. In earlier versions of OpenFlow, the default action on for such packets is 'forward-to-controller'. This has a severe implication: when the switch first comes up, all of its flow tables would be empty and thus the switch would forward all passing traffic to the OpenFlow controller, overwhelming it; worst, controller may drop some of the packets based on any adaptive queuing mechanism.
+
+The recent versions of OpenFlow (v FIXME) solves this problem by including a specific flow entry called table miss entry. All tables should have a all-wild carded match entry with the lowest priority (thus matching all packets that were not matched by higher priority granular flows). By default, the action is to drop table miss packets, but the action can be changed to any of the standard actions (goto-table, goto controller and so on).
+
+\subsection{Control Channel}
+A control channel is established between the switch and the controller which is used for exchanging control data and statistics between the switch and the controller. This connection is usually a TLS or a TCP connection. One such connections opened for every controller the switch is connected to and vice-versa. The OpenFlow specification has detailed information on connection parameters, connection setup and tear down, heartbeat messages and connection interruption. 
+
+\subsection{OpenFlow Messages}
+All OpenFlow messages can be broadly categorized into three categories:
+\begin{itemize}
+\item Controller-to-Switch messages: are sent by the controller to the switch and may/may not get a response from the switch. Examples includes table state requests, flow/port modification and packet-out messages.
+\item Asynchronous messages: are sent by the switch without any solicitation from the controller. Examples includes packet-in, port status and flow removal messages.
+\item Symmetric messages: are exchanged by both - the switch and the controller without any solicitation from the other entity. Examples of such messages include hello, echo and experimenter messages.
+\end{itemize}
+
+
+Out of many such messages, we will look at two important messages - flow mod and experimenter messages and about the OpenFlow header which is used in all OpenFlow packets.
+
+\subsubsection {OpenFlow Header}
+All OpenFlow messages begins with the OpenFlow header. The header can be represented as:
+
+\begin{verbatim}
+/* OpenFlow Message Header */
+struct ofp_header {
+    uint8_t     version;    /* OFP_VERSION                              */
+    uint8_t     type;       /* One of the OFPT_ constants               */
+    uint16_t    length;     /* Length of the message including header   */
+    uint32_t    xid;        /* Transaction ID used with this packet.    
+                             * Replies use same xid as that of requests
+                             * to facilitate parsing.                   */
+};
+OFP_ASSERT(8 == sizeof(struct ofp_header));
+\end{verbatim}
+
+\subsubsection{Flow-Mod Messages}
+\subsubsection{OpenFlow Experimenter Messages}
+
+\subsection{Shortcomings of OpenFlow}
+
+\subsection{References}
+\begin{thebibliography}[9]
+Nick McKeown et. al.,
+"OpenFlow: Enabling Innovation in Campus Networks"
+\end{thebibliography}
+
+\end{document}
+
