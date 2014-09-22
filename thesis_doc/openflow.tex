@@ -49,7 +49,7 @@ User traffic is forwarded on the based on route table entries.  &
 In a typical vendor hardware switch, these planes are tightly coupled and most, if not all, of the hardware and software is proprietary. It would be next to impossible for independent researches and students to test their new protocols at scale on a reliable network hardware. Also, tighter integration of control and data planes has its implications on vendor interoperability due to which most of the enterprise customers are locked with a vendor.
 
 \section{OpenFlow}
-OpenFlow started as a research project in 2008 to facilitate networking systems researchers to run newer experimental protocols at scale. The core idea of OpenFlow lies in the separation of data and control paths. Post release of initial OpenFlow specification, networking industry took immense interest in that and vendors started enabling OpenFlow on their products. This lead to the formation of an official committee, Open Networking Foundation (ONF), to manage and govern OpenFlow. ONF is now responsible for OpenFlow specif cations and other related activities that falls under the purview of OpenFlow.
+OpenFlow started as a research project\cite{key:of_wp} in 2008 to facilitate networking systems researchers to run newer experimental protocols at scale. The core idea of OpenFlow lies in the separation of data and control paths. Post release of initial OpenFlow specification, networking industry took immense interest in that and vendors started enabling OpenFlow on their products. This lead to the formation of an official committee, Open Networking Foundation (ONF)\cite{onf}, to manage and govern OpenFlow. ONF is now responsible for OpenFlow specif cations and other related activities that falls under the purview of OpenFlow.
 
 The crux of OpenFlow lies in its ability to clearly segregate control and data path functionality in a switch. The data path is still maintained by the switch, but the control decisions are not taken by the switch anymore. Instead, they are offloaded to an entity, controller, which is connected to the switch. The controller functions as the brain of the switch and programs the switch's data path (by means of flow tables) on how to forward traffic. 
 
@@ -93,9 +93,31 @@ All OpenFlow messages can be broadly categorized into three categories:
 \item Symmetric messages: are exchanged by both - the switch and the controller without any solicitation from the other entity. Examples of such messages include hello, echo and experimenter messages.
 \end{itemize}
 
+\begin{table}[h!]
+\centering
+\begin{center}
+\begin{tabular} {| p{5.3cm} | p{11cm} |} % 3 columns, all left aligned
+\hline
+\textbf{OFPT\_ Message Type} & \textbf{Description} \\ \hline
+OFPT\_HELLO, 0 & Hello exchange messages \\
+OFPT\_ERROR, 1 & Switch/controller error messages \\
+OFPT\_EXPERIMENTER, 4 & Experimenter messages \\
+OFPT\_FEATURES\_REQUEST, 5 & Controller requests switch about supported features \\
+OFPT\_FEATURES\_REPLY, 6 & Switch replies to controller about its features \\
+OFPT\_PACKET\_IN, 10 & Switch sends a packet that didn't match any entries to controller \\
+OFPT\_PACKET\_OUT, 13 & Controller sends a packet with instructions on how to handle it to switch \\
+OFPT\_FLOW\_MOD, 14 & Controller installs a new flow entry on the switch \\
+OFPT\_METER\_MOD, 29 & Controller installs a new meter on the switch \\
+\hline
+\end{tabular}
+\caption{Widely Uses Messages in OpenFlow}
+\label{table:of_msg_types}
+\end{center}
+\end{table}
 
 Out of many such messages, we will look at two important messages - flow mod and experimenter messages and about the OpenFlow header which is used in all OpenFlow packets.
 
+% OpenFlow Header
 \subsubsection {OpenFlow Header}
 All OpenFlow messages begins with the OpenFlow header. The header can be represented as:
 
@@ -112,15 +134,72 @@ struct ofp_header {
 OFP_ASSERT(8 == sizeof(struct ofp_header));
 \end{verbatim}
 
-\subsubsection{Flow-Mod Messages}
-\subsubsection{OpenFlow Experimenter Messages}
+/% Flow Modification Messages
+\subsubsection{Flow Modification Messages}
+All flow mod messages will have their type set to OFPT\_FLOW\_MOD in the OpenFlow header followed by other flow entry parameters such  as cookie, table ID, timeout values, priority, match fields (as a ofp\_match structure) and instruction set.
+
+\begin{verbatim}
+/* Flow setup and teardown (controller -> datapath) */
+struct ofp_flow_mod {
+    struct ofp_header header;
+    uint64_t                cookie;             /* Opaque controller-issued identifier  */
+    uint64_t                cookie_mask; 
+    uint8_t                 table_id;
+    uint8_t                 command;            /* ADD/MOD/DEL with strict              */
+    uint16_t                idle_timeout;       /* Flow idle timeout in seconds         */
+    uint16_t                hard_timeout;       /* Flow hard timeout in seconds         */
+    uint16_t                priority;           /* Flow priority                        */
+    uint32_t                buffer_id;          /* ID of packet_out buffer, if present  */
+    uint32_t                out_port;   
+    uint32_t                out_group;          /* Group ID, for group processing       */
+    uint16_t                flags;              /* One of OFPFF_*                       */
+    uint8_t                 pad[2];
+    struct ofp_match        match;              /* Fields to match. Variable size.      */
+    struct ofp_instruction  instructions[0];    /* Instruction set                      */
+};
+OFP_ASSERT(sizeof(struct ofp_flow_mod) == 56);
+\end{verbatim}
+
+Note that there can be zero or more instructions as a part of an entry. Zero instruction implies a packet drop action.
+
+% Experimenter Messages
+\subsubsection{Experimenter Messages}
+Experimenter messages has the type OFPT_\EXPERIMENTER in the OpenFlow header followed by the experimenter header. 
+
+\begin{verbatim}
+/* Header for OXM experimenter match fields. */
+struct ofp_oxm_experimenter_header {
+    uint32_t oxm_header;    /* oxm_class = OFPXMC_EXPERIMENTER              */
+    uint32_t experimenter;  /* Experimenter ID which takes the same
+                             * form as in struct ofp_experimenter_header    */
+};
+OFP_ASSERT(sizeof(struct ofp_oxm_experimenter_header) == 8);
+\end{verbatim}
+
+Experimenter messages are usually used as a staging area for testing future match/action capabilities. For an example, metering support was offered as a vendor extension (experimenters were called as extensions in earlier versions of OpenFlow) for OpenFlow v1.0 by many vendors. It was eventually added to the specification in later versions of OpenFlow.
 
 \subsection{Shortcomings of OpenFlow}
+Though OpenFlow has opened new doors in networking by enabling SDN in a scalalble manner, it comes with its own set of issues:
+\begin{itemize}
+\item Limited set of match fields. OpenFlow v1.0 had match support for just 12 fields in the regualr TCP/IP packet. Though this has been improved in later versions of OpenFlow, it is still a small set. Packet matching being the rudimentary step in a pipeline processing, without more fields to match, OpenFlow cannot be used at production level.
+\item Specification-Vendor synchronization has been an issue from the beginning. A typical packet processing ASIC present in switches has a long development cycle (at least, 2 years). On an average of 8 months, ONF releases a new OpenFlow specification. Thus, the vendors are not able to keep up with the new features that the specification has to offer. On the other hand, soft switch vendors were able to update their soft switch to match the recent specification. But, huge performance penalities has to be paid if a soft switch is to be used in production.
+\end{itemize}
 
-\subsection{References}
-\begin{thebibliography}[9]
+\begin{thebibliography} {99}
+
+\bibitem{key:of_wp}
 Nick McKeown et. al.,
-"OpenFlow: Enabling Innovation in Campus Networks"
+"OpenFlow: Enabling Innovation in Campus Networks"\\
+{\em ACM SIGCOMM Computer Communication Review, Volume 38, Number 2, April 2008.}
+
+\bibitem{key:onf}
+Open Networking Foundataion \\
+{\em https://www.opennetworking.org/}
+
+\bibitem{key:of_spec_130}
+OpenFlow v1.3.0 Specification by ONF \\
+{\em https://www.opennetworking.org/images/stories/downloads/sdn-resources/onf-specifications/openflow/openflow-spec-v1.3.0.pdf}
+
 \end{thebibliography}
 
 \end{document}
