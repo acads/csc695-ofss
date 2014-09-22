@@ -1,8 +1,19 @@
 mininet notes
 =============
 
+Installation
+------------
+1. Get the lateset stable source code from Git tree.
+    git clone git://github.com/mininet/mininet
+
+2. Install minimal version of mininet
+    mininet/util/install.sh -n
+
+3. Test the installation
+    sudo mn --test pingall
+
 Topology Creation
-=================
+-----------------
 To start a simple topology with ofsoftswitch and 2 nodes,
 
 ```
