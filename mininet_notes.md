@@ -340,4 +340,117 @@ rtt min/avg/max/mdev = 0.157/0.424/0.606/0.183 ms
 ```
 
 *******************************************************************************
+Simple iperf testing in Mininet
+===============================
+
+1. Start the simple topology using:
+sudo mn --topo single,2 --mac --switch user,protocols=OpenFlow13 --controller remote
+
+2. See the ports in ofss.
+dpctl show unix:/tmp/s1
+features_reply (xid=0x71c184ea): ver:0x1, dpid:1
+n_tables:2, n_buffers:256
+features: capabilities:0xc7, actions:0xeff
+ 1(s1-eth1): addr:b6:88:aa:31:8a:45, config: 0, state:0
+     current:    10GB-FD COPPER
+ 2(s1-eth2): addr:52:e2:a5:8b:39:d7, config: 0, state:0
+     current:    10GB-FD COPPER
+ LOCAL(tap0): addr:00:00:00:00:00:01, config: 0, state:0
+     current:    10MB-FD COPPER
+get_config_reply (xid=0x3f262d59): miss_send_len=128
+
+3. Install couple of basic flows to get traffic flowing b/w the switch ports.
+root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
+root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
+
+root@vclv99-158:~# dpctl dump-flows unix:/tmp/s1
+stats_reply (xid=0x926ca13f): flags=none type=1(flow)
+   cookie=0, duration_sec=16s, duration_nsec=512000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
+   cookie=0, duration_sec=41s, duration_nsec=296000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
+
+4. h1 will be the server and h2 will act as a client. Start iperf on the nodes.
+root@vclv99-158:~# iperf -s -p 9990 -f k -i 1
+------------------------------------------------------------
+Server listening on TCP port 9990
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[ 13] local 10.0.0.1 port 9990 connected with 10.0.0.2 port 34359
+[ ID] Interval       Transfer     Bandwidth
+[ 13]  0.0- 1.0 sec  66.5 KBytes   544 Kbits/sec
+[ 13]  1.0- 2.0 sec  26791 KBytes  219470 Kbits/sec
+[ 13]  2.0- 3.0 sec  27277 KBytes  223455 Kbits/sec
+[ 13]  3.0- 4.0 sec  27180 KBytes  222656 Kbits/sec
+[ 13]  4.0- 5.0 sec  27212 KBytes  222922 Kbits/sec
+[ 13]  5.0- 6.0 sec  27153 KBytes  222436 Kbits/sec
+[ 13]  6.0- 7.0 sec  27201 KBytes  222830 Kbits/sec
+[ 13]  7.0- 8.0 sec  27143 KBytes  222355 Kbits/sec
+[ 13]  8.0- 9.0 sec  27219 KBytes  222980 Kbits/sec
+[ 13]  9.0-10.0 sec  27181 KBytes  222668 Kbits/sec
+[ 13] 10.0-11.0 sec  27300 KBytes  223641 Kbits/sec
+[ 13] 11.0-12.0 sec  27240 KBytes  223154 Kbits/sec
+[ 13] 12.0-13.0 sec  27250 KBytes  223235 Kbits/sec
+[ 13] 13.0-14.0 sec  27267 KBytes  223374 Kbits/sec
+[ 13] 14.0-15.0 sec  27303 KBytes  223664 Kbits/sec
+[ 13] 15.0-16.0 sec  27231 KBytes  223073 Kbits/sec
+[ 13] 16.0-17.0 sec  27307 KBytes  223699 Kbits/sec
+[ 13] 17.0-18.0 sec  27243 KBytes  223177 Kbits/sec
+[ 13] 18.0-19.0 sec  27270 KBytes  223397 Kbits/sec
+[ 13] 19.0-20.0 sec  27232 KBytes  223085 Kbits/sec
+[ 13] 20.0-21.0 sec  27289 KBytes  223548 Kbits/sec
+[ 13] 21.0-22.0 sec  27240 KBytes  223154 Kbits/sec
+[ 13] 22.0-23.0 sec  27290 KBytes  223560 Kbits/sec
+[ 13] 23.0-24.0 sec  27330 KBytes  223884 Kbits/sec
+[ 13] 24.0-25.0 sec  27327 KBytes  223861 Kbits/sec
+[ 13] 25.0-26.0 sec  27303 KBytes  223664 Kbits/sec
+[ 13] 26.0-27.0 sec  27298 KBytes  223629 Kbits/sec
+[ 13] 27.0-28.0 sec  27202 KBytes  222841 Kbits/sec
+[ 13] 28.0-29.0 sec  27218 KBytes  222969 Kbits/sec
+[ 13] 29.0-30.0 sec  27204 KBytes  222853 Kbits/sec
+[ 13]  0.0-30.0 sec  790016 KBytes  215637 Kbits/sec
+
+
+root@vclv99-158:~# iperf -c 10.0.0.1 -p 9990 -f k -i 1 -t 30
+------------------------------------------------------------
+Client connecting to 10.0.0.1, TCP port 9990
+TCP window size: 85.3 KByte (default)
+------------------------------------------------------------
+[ 12] local 10.0.0.2 port 34359 connected with 10.0.0.1 port 9990
+[ ID] Interval       Transfer     Bandwidth
+[ 12]  0.0- 1.0 sec   256 KBytes  2097 Kbits/sec
+[ 12]  1.0- 2.0 sec  26752 KBytes  219152 Kbits/sec
+[ 12]  2.0- 3.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12]  3.0- 4.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12]  4.0- 5.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12]  5.0- 6.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12]  6.0- 7.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12]  7.0- 8.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12]  8.0- 9.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12]  9.0-10.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12] 10.0-11.0 sec  27392 KBytes  224395 Kbits/sec
+[ 12] 11.0-12.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12] 12.0-13.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 13.0-14.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 14.0-15.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 15.0-16.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 16.0-17.0 sec  27392 KBytes  224395 Kbits/sec
+[ 12] 17.0-18.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 18.0-19.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12] 19.0-20.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 20.0-21.0 sec  27392 KBytes  224395 Kbits/sec
+[ 12] 21.0-22.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12] 22.0-23.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 23.0-24.0 sec  27392 KBytes  224395 Kbits/sec
+[ 12] 24.0-25.0 sec  27392 KBytes  224395 Kbits/sec
+[ 12] 25.0-26.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 26.0-27.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 27.0-28.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12] 28.0-29.0 sec  27136 KBytes  222298 Kbits/sec
+[ 12] 29.0-30.0 sec  27264 KBytes  223347 Kbits/sec
+[ 12]  0.0-30.0 sec  790016 KBytes  215672 Kbits/sec
+
+5. Check the flow stats on the switch. The counters should be updated.
+root@vclv99-158:~# dpctl dump-flows unix:/tmp/s1
+stats_reply (xid=0x486f2fb3): flags=none type=1(flow)
+   cookie=0, duration_sec=1065s, duration_nsec=179000000s, table_id=1, priority=32768, n_packets=640716, n_bytes=970264590, idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
+   cookie=0, duration_sec=1089s, duration_nsec=963000000s, table_id=1, priority=32768, n_packets=560307, n_bytes=40822238, idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
 
