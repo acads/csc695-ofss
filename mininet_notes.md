@@ -344,9 +344,12 @@ Simple iperf testing in Mininet
 ===============================
 
 1. Start the simple topology using:
+```
 sudo mn --topo single,2 --mac --switch user,protocols=OpenFlow13 --controller remote
+```
 
 2. See the ports in ofss.
+```
 dpctl show unix:/tmp/s1
 features_reply (xid=0x71c184ea): ver:0x1, dpid:1
 n_tables:2, n_buffers:256
@@ -358,8 +361,10 @@ features: capabilities:0xc7, actions:0xeff
  LOCAL(tap0): addr:00:00:00:00:00:01, config: 0, state:0
      current:    10MB-FD COPPER
 get_config_reply (xid=0x3f262d59): miss_send_len=128
+```
 
 3. Install couple of basic flows to get traffic flowing b/w the switch ports.
+```
 root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
 root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
 
@@ -367,8 +372,10 @@ root@vclv99-158:~# dpctl dump-flows unix:/tmp/s1
 stats_reply (xid=0x926ca13f): flags=none type=1(flow)
    cookie=0, duration_sec=16s, duration_nsec=512000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
    cookie=0, duration_sec=41s, duration_nsec=296000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
+```
 
 4. h1 will be the server and h2 will act as a client. Start iperf on the nodes.
+```
 root@vclv99-158:~# iperf -s -p 9990 -f k -i 1
 ------------------------------------------------------------
 Server listening on TCP port 9990
@@ -447,10 +454,15 @@ TCP window size: 85.3 KByte (default)
 [ 12] 28.0-29.0 sec  27136 KBytes  222298 Kbits/sec
 [ 12] 29.0-30.0 sec  27264 KBytes  223347 Kbits/sec
 [ 12]  0.0-30.0 sec  790016 KBytes  215672 Kbits/sec
+```
 
 5. Check the flow stats on the switch. The counters should be updated.
+```
 root@vclv99-158:~# dpctl dump-flows unix:/tmp/s1
 stats_reply (xid=0x486f2fb3): flags=none type=1(flow)
    cookie=0, duration_sec=1065s, duration_nsec=179000000s, table_id=1, priority=32768, n_packets=640716, n_bytes=970264590, idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
    cookie=0, duration_sec=1089s, duration_nsec=963000000s, table_id=1, priority=32768, n_packets=560307, n_bytes=40822238, idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
+```
+
+*******************************************************************************
 
