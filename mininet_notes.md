@@ -350,28 +350,36 @@ sudo mn --topo single,2 --mac --switch user,protocols=OpenFlow13 --controller re
 
 2. See the ports in ofss.
 ```
-dpctl show unix:/tmp/s1
-features_reply (xid=0x71c184ea): ver:0x1, dpid:1
-n_tables:2, n_buffers:256
-features: capabilities:0xc7, actions:0xeff
- 1(s1-eth1): addr:b6:88:aa:31:8a:45, config: 0, state:0
-     current:    10GB-FD COPPER
- 2(s1-eth2): addr:52:e2:a5:8b:39:d7, config: 0, state:0
-     current:    10GB-FD COPPER
- LOCAL(tap0): addr:00:00:00:00:00:01, config: 0, state:0
-     current:    10MB-FD COPPER
-get_config_reply (xid=0x3f262d59): miss_send_len=128
+$ sudo dpctl unix:/tmp/s1 features
+RECEIVED (xid=0xF0FF00F0):
+feat_repl{dpid="0x0000000000000001", buffs="256", tabs="64", aux_id="0", caps="0x4f"]}
+
+$ sudo dpctl unix:/tmp/s1 port-desc
+RECEIVED (xid=0xF0FF00F0):
+stat_repl{type="port-desc", flags="0x0"{no="1", hw_addr="8a:ef:d0:d9:e8:35", name="s1-eth1", config="0x0", state="0x4", curr="0x840", adv="0x0", supp="0x0", peer="0x0", curr_spd="10485760kbps", max_spd="0kbps"}, {no="2", hw_addr="fa:b4:3e:47:82:b3", name="s1-eth2", config="0x0", state="0x4", curr="0x840", adv="0x0", supp="0x0", peer="0x0", curr_spd="10485760kbps", max_spd="0kbps"}, {no="local", hw_addr="00:00:00:00:00:01", name="tap:", config="0x0", state="0x4", curr="0x802", adv="0x0", supp="0x0", peer="0x0", curr_spd="10240kbps", max_spd="0kbps"}}}
 ```
 
 3. Install couple of basic flows to get traffic flowing b/w the switch ports.
 ```
-root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
-root@vclv99-158:~# dpctl add-flow unix:/tmp/s1 idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
+$ sudo dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=1 apply:output:2
 
-root@vclv99-158:~# dpctl dump-flows unix:/tmp/s1
-stats_reply (xid=0x926ca13f): flags=none type=1(flow)
-   cookie=0, duration_sec=16s, duration_nsec=512000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=2,actions=output:1
-   cookie=0, duration_sec=41s, duration_nsec=296000000s, table_id=1, priority=32768, n_packets=8, n_bytes=708, idle_timeout=0,hard_timeout=0,in_port=1,actions=output:2
+SENDING (xid=0xF0FF00F0):
+flow_mod{table="0", cmd="add", cookie="0x0", mask="0x0", idle="0", hard="0", prio="32768", buf="none", port="any", group="any", flags="0x0", match=oxm{in_port="1"}, insts=[apply{acts=[out{port="2"}]}]}
+
+OK.
+
+$ sudo dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=2 apply:output:1
+SENDING (xid=0xF0FF00F0):
+flow_mod{table="0", cmd="add", cookie="0x0", mask="0x0", idle="0", hard="0", prio="32768", buf="none", port="any", group="any", flags="0x0", match=oxm{in_port="2"}, insts=[apply{acts=[out{port="1"}]}]}
+
+OK.
+
+$ sudo dpctl unix:/tmp/s1 stats-flow
+SENDING (xid=0xF0FF00F0):
+stat_req{type="flow", flags="0x0", table="all", oport="any", ogrp="any", cookie=0x0", mask=0x0", match=oxm{all match}}
+
+RECEIVED (xid=0xF0FF00F0):
+stat_repl{type="flow", flags="0x0", stats=[{table="0", match="oxm{in_port="1"}", dur_s="17", dur_ns="63000", prio="32768", idle_to="0", hard_to="0", cookie="0x0", pkt_cnt="0", byte_cnt="0", insts=[apply{acts=[out{port="2"}]}]}, {table="0", match="oxm{in_port="2"}", dur_s="12", dur_ns="357000", prio="32768", idle_to="0", hard_to="0", cookie="0x0", pkt_cnt="0", byte_cnt="0", insts=[apply{acts=[out{port="1"}]}]}]}
 ```
 
 4. h1 will be the server and h2 will act as a client. Start iperf on the nodes.
