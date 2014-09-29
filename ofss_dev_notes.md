@@ -63,6 +63,23 @@ utilities/dpctl.c
     and sends it over the vconn.
 
 
+udpdatapath/remote_rconn_run.c
+    Implmements data and rudimentrary control path processing.
+
+    remote_rconn_run()
+    Called on periodic intervals to talk to remotes (controller/utilities) for
+    control path information.
+
+
+udatapath/dp_control.c
+    Implements control path data handling from connections.
+
+    handle_control_msg()
+    Used for identifying the type (one of the OFPT_*) of the incoming request 
+    and to dispatch control to appropriate msg handler. Eg., for OFPT_FLOW_MOD 
+    msgs, pipeline_handle_flow_mod() is called.
+
+
 udatapath/pipeline.c
     Most of the datapath implementation is contained within this file.
 
@@ -79,7 +96,7 @@ udatapath/pipeline.c
     The datapath pipeline starts here. The netdev recveives a packet from one
     of the many dp ports and does some initial processing. It then adds bunch
     of metatdata on top of the received packet and the final packet is
-    handed over to this function. It's responsible to initiate pipeline
+    handed over to this function. It is responsible to initiate pipeline
     processing (i.e., table lookups) for the received packet.
 
 
@@ -112,7 +129,7 @@ struct ofl_msg_flow_mod
     & hard timeouts, priority, match fields and instructions.
 
 struct flow_table
-    Represents the flow table. It's present in every table. It contains the
+    Represents the flow table and present in every table. It contains the
     table features, statistics, a list for match, hard and idle entries. 
     i.e., the flows are classified into 3 categories: idle, hard and regular
     match entries. This facilitates correct aging.
