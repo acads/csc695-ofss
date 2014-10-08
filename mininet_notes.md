@@ -6,8 +6,11 @@ Installation
 1. Get the lateset stable source code from Git tree.
     git clone git://github.com/mininet/mininet
 
-2. Install minimal version of mininet
-    mininet/util/install.sh -n
+2. Install using util/install.sh script
+    mininet/util/install.sh -n      (for minimal installation)
+    mininet/util/install.sh -a      (for full installation)
+    mininet/util/install.sh -3f     (to install OF 1.3 soft switch)
+    mininet/util/install.sh -h      (for all possible install options)
 
 3. Test the installation
     sudo mn --test pingall
