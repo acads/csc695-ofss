@@ -41,6 +41,10 @@
 #include "openflow/openflow.h"
 #include "openflow/nicira-ext.h"
 #include "openflow/openflow-ext.h"
+#ifdef OFP_FPM
+#include "ofl-exp-fpm.h"
+#include "openflow/fpm-ext.h"
+#endif /* OFP_FPM */
 
 #define LOG_MODULE ofl_exp
 OFL_LOG_INIT(LOG_MODULE)
@@ -56,6 +60,11 @@ ofl_exp_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, size_t *buf_le
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_pack(msg, buf, buf_len);
         }
+#ifdef OFP_FPM
+        case OFP_EXP_FPM_ID: {
+            return ofl_exp_fpm_msg_pack(msg, buf, buf_len);
+        }
+#endif /* OFP_FPM */
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to pack unknown EXPERIMENTER message (%u).", msg->experimenter_id);
             return -1;
@@ -107,6 +116,7 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
 
 char *
 ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
+    printf("LOL main routine.. 0x%x\n", msg->experimenter_id);
     switch (msg->experimenter_id) {
         case (OPENFLOW_VENDOR_ID): {
             return ofl_exp_openflow_msg_to_string(msg);
@@ -114,6 +124,11 @@ ofl_exp_msg_to_string(struct ofl_msg_experimenter *msg) {
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_to_string(msg);
         }
+#ifdef OFP_FPM
+        case OFP_EXP_FPM_ID: {
+            return ofl_exp_fpm_msg_to_string(msg);
+        }
+#endif /* OFP_FPM */
         default: {
             char *str;
             size_t str_size;

@@ -22,12 +22,14 @@ struct ofl_exp_fpm_msg_header {
     uint32_t                    type;
 };
 
-struct ofl_exp_fmp_msg {
+struct ofl_exp_fpm_msg {
     struct ofl_exp_fpm_msg_header   header;
-    struct of_fpm_entry             fpm_entry;
+    struct of_fpm_entry             *fpm_entry;
 };
 
 /* Function declarations */
+inline bool
+fpm_is_id_valid(uint8_t id);
 int
 ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, 
                 size_t *buf_len);

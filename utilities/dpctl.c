@@ -72,6 +72,11 @@
 #include "ofpstat.h"
 #include "openflow/private-ext.h"
 
+#ifdef OFP_FPM
+#include "openflow/fpm-ext.h"
+#include "oflib-exp/ofl-exp-fpm.c"
+#endif /* OFP_FPM */
+
 #include "vlog.h"
 
 #define LOG_MODULE VLM_dpctl
@@ -826,6 +831,64 @@ set_desc(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
 
 
+#ifdef OFP_FPM
+static void
+fpm_mod(struct vconn *vconn, int argc, char *argv[])
+{
+    struct of_fpm_entry     *entry = NULL;
+    struct ofl_exp_fpm_msg  msg = {
+        {{{.type = OFPT_EXPERIMENTER},
+           .experimenter_id = OFP_EXP_FPM_ID},
+           .type = OFP_FPM_ADD},
+           .fpm_entry = NULL};
+#if 0
+        {.id = 0,
+         .offset = 0,
+         .len = 0,
+         .match = ""}};
+#endif
+
+    entry = xmalloc(sizeof(*entry));
+    msg.fpm_entry = entry;
+    entry->id = atoi(argv[0]);
+    entry->offset = atoi(argv[1]);
+    entry->len = atoi(argv[2]);
+    if (strlen(argv[3]) <= FPM_MAX_LEN) {
+        memcpy(entry->match, argv[3], FPM_MAX_LEN);
+    } else {
+        ofp_fatal(0,
+            "Length of match string is greater than permissable length of %u.",
+            FPM_MAX_LEN);
+    }
+
+    printf("exp_id 0x%x, id %u, offset %d, len %d, match %s\n",
+            msg.header.header.experimenter_id, msg.fpm_entry->id,
+            msg.fpm_entry->offset, msg.fpm_entry->len,
+            msg.fpm_entry->match);
+
+    dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
+    return;
+}
+
+static void
+fpm_del(struct vconn *vconn, int argc UNUSED, char *argv[])
+{
+    return;
+}
+
+static void
+fpm_desc(struct vconn *vconn, int argc UNUSED, char *argv[])
+{
+    return;
+}
+
+static void
+fpm_stats(struct vconn *vconn, int argc UNUSED, char *argv[])
+{
+    return;
+}
+#endif /* OFP_FPM */
+
 static void
 queue_mod(struct vconn *vconn, int argc UNUSED, char *argv[]) {
     struct ofl_packet_queue *pq;
@@ -932,6 +995,13 @@ static struct command all_commands[] = {
     {"queue-get-config", 1, 1, queue_get_config},
     {"set-desc", 1, 1, set_desc},
     {"set-table-match", 0, 2, set_table_features_match},
+
+#ifdef OFP_FPM
+    {"fpm-mod", 4, 4, fpm_mod},
+    {"fpm-del", 1, 1, fpm_del},
+    {"fpm-desc", 1, 1, fpm_desc},
+    {"fpm-stats", 0, 1, fpm_stats},
+#endif /* OFP_FPM */
 
     {"queue-mod", 3, 3, queue_mod},
     {"queue-del", 2, 2, queue_del}
@@ -1096,6 +1166,9 @@ usage(void)
             "  SWITCH set-desc DESC                   sets the DP description\n"
             "  SWITCH queue-mod PORT QUEUE BW         adds/modifies queue\n"
             "  SWITCH queue-del PORT QUEUE            deletes queue\n"
+#ifdef OFP_FPM
+            "  SWITCH fpm-mod ID OFFSET LEN MATCH     adds a new FPM\n"
+#endif /* OFP_FPM */
             "\n",
             program_name, program_name);
      vconn_usage(true, false, false);
