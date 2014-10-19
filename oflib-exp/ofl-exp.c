@@ -90,6 +90,11 @@ ofl_exp_msg_unpack(struct ofp_header *oh, size_t *len, struct ofl_msg_experiment
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_unpack(oh, len, msg);
         }
+#ifdef OFP_FPM
+        case OFP_EXP_FPM_ID: {
+            return ofl_exp_fpm_msg_unpack(oh, len, msg);
+        }
+#endif /* OFP_FPM */
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to unpack unknown EXPERIMENTER message (%u).", htonl(exp->experimenter));
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
@@ -106,6 +111,11 @@ ofl_exp_msg_free(struct ofl_msg_experimenter *msg) {
         case (NX_VENDOR_ID): {
             return ofl_exp_nicira_msg_free(msg);
         }
+#ifdef OFP_FPM
+        case OFP_EXP_FPM_ID: {
+            return ofl_exp_fpm_msg_free(msg);
+        }
+#endif /* OFP_FPM */
         default: {
             OFL_LOG_WARN(LOG_MODULE, "Trying to free unknown EXPERIMENTER message (%u).", msg->experimenter_id);
             free(msg);

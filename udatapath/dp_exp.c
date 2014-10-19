@@ -45,6 +45,12 @@
 #include "openflow/nicira-ext.h"
 #include "vlog.h"
 
+#ifdef OFP_FPM
+#include "dp_fpm.h"
+#include "openflow/fpm-ext.h"
+#include "oflib-exp/ofl-exp-fpm.h"
+#endif /* OFP_FPM */
+
 #define LOG_MODULE VLM_dp_exp
 
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(60, 60);
@@ -93,6 +99,25 @@ dp_exp_message(struct datapath *dp,
                 }
             }
         }
+
+#ifdef OFP_FPM
+        case OFP_EXP_FPM_ID: {
+            struct ofl_exp_fpm_msg_header *exp_hdr =
+                (struct ofl_exp_fpm_msg_header *) msg;
+
+            switch (exp_hdr->type) {
+                case OFP_FPM_ADD:
+                    return dp_fpm_handle_modify(dp,
+                            (struct ofl_exp_fpm_msg *) msg, sender);
+
+                default:
+                    VLOG_WARN_RL(LOG_MODULE, &rl,
+                            "Trying to handle unknow subtype of OFP_EXP_FPM_ID");
+                    return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
+            }
+        }
+#endif /* OFP_FPM */
+
         default: {
             return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_EXPERIMENTER);
         }

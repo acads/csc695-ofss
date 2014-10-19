@@ -19,6 +19,12 @@
 #define FPM_MAX_LEN     32          /* FPM length of data to match  */
 #define FPM_MIN_ID      0
 #define FPM_MAX_ID      127
+#ifndef TRUE
+#define TRUE            1
+#endif /* TRUE */
+#ifndef FALSE
+#define FALSE           0
+#endif /* FALSE */
 
 /* Util macros */
 #define IS_FPM_EXPT(ID)         (OFP_EXP_FPM_ID == ID)
@@ -52,16 +58,16 @@ struct of_fpm_entry {
 /* FPM msg */
 struct of_fpm_msg {
     struct of_fpm_header    fpm_header; /* OF + EXP header  */
-    struct of_fpm_entry     *fpm_entry; /* actual FPM entry */
+    struct of_fpm_entry     fpm_entry;  /* actual FPM entry */
     uint8_t                 pad[7];     /* 64-bit boundary  */
 };
 OFP_ASSERT(sizeof(struct ofl_exp_msg) % 4 == 0);
 
 /* FPM table */
-struct of_exp_fpm_table {
-    struct of_exp_fpm_msg  *fpm_entries[FPM_MAX_ID + 1];
-    uint32_t                fpm_nref[FPM_MAX_ID + 1];
-    uint8_t                 nfpm;
+struct of_fpm_table {
+    struct of_fpm_msg  *fpm_entries[FPM_MAX_ID + 1];
+    uint32_t           fpm_nref[FPM_MAX_ID + 1];
+    uint8_t            nfpm;
 };
 #endif /* FPM_EXT_H */
 

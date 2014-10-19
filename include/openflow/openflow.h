@@ -1679,6 +1679,13 @@ enum ofp_queue_op_failed_code {
     OFPQOFC_EPERM = 2,     /* Permissions error. */
 };
 
+#ifdef OFP_FPM
+enum ofp_fpm_op_failed_code {
+    OFPFPMC_BAD_ID = 0,     /* Invalid ID or ID doesn't exist   */
+    OFFFPMC_ID_EXISTS = 1,  /* Given ID exists already          */
+};
+#endif /* OFP_FPM */
+
 /* ofp_error_msg ’code’ values for OFPET_SWITCH_CONFIG_FAILED. ’data’ contains
 * at least the first 64 bytes of the failed request. */
 enum ofp_switch_config_failed_code {

@@ -22,6 +22,8 @@ udatapath_ofdatapath_SOURCES = \
 	udatapath/dp_exp.h \
 	udatapath/dp_ports.c \
 	udatapath/dp_ports.h \
+        udatapath/dp_fpm.c \
+        udatapath/dp_fpm.h \
 	udatapath/flow_table.c \
 	udatapath/flow_table.h \
 	udatapath/flow_entry.c \

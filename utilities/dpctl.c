@@ -74,7 +74,7 @@
 
 #ifdef OFP_FPM
 #include "openflow/fpm-ext.h"
-#include "oflib-exp/ofl-exp-fpm.c"
+#include "oflib-exp/ofl-exp-fpm.h"
 #endif /* OFP_FPM */
 
 #include "vlog.h"
@@ -833,7 +833,7 @@ set_desc(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
 #ifdef OFP_FPM
 static void
-fpm_mod(struct vconn *vconn, int argc, char *argv[])
+fpm_mod(struct vconn *vconn, int argc UNUSED, char *argv[])
 {
     struct of_fpm_entry     *entry = NULL;
     struct ofl_exp_fpm_msg  msg = {
@@ -841,12 +841,6 @@ fpm_mod(struct vconn *vconn, int argc, char *argv[])
            .experimenter_id = OFP_EXP_FPM_ID},
            .type = OFP_FPM_ADD},
            .fpm_entry = NULL};
-#if 0
-        {.id = 0,
-         .offset = 0,
-         .len = 0,
-         .match = ""}};
-#endif
 
     entry = xmalloc(sizeof(*entry));
     msg.fpm_entry = entry;
@@ -871,19 +865,19 @@ fpm_mod(struct vconn *vconn, int argc, char *argv[])
 }
 
 static void
-fpm_del(struct vconn *vconn, int argc UNUSED, char *argv[])
+fpm_del(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
 {
     return;
 }
 
 static void
-fpm_desc(struct vconn *vconn, int argc UNUSED, char *argv[])
+fpm_desc(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
 {
     return;
 }
 
 static void
-fpm_stats(struct vconn *vconn, int argc UNUSED, char *argv[])
+fpm_stats(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
 {
     return;
 }
