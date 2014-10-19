@@ -50,13 +50,13 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             exp_msg = (struct ofl_exp_fpm_msg *) exp_hdr;
             *buf_len = sizeof(*loc_msg);
             *buf = (uint8_t *) calloc(1, *buf_len);
-            loc_msg = (struct of_fpm_msg *) (*buf);
-            loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
 
+            loc_msg = (struct of_fpm_msg *) (*buf);
             loc_msg->fpm_header.vendor =
                 htonl(exp_hdr->header.experimenter_id);
             loc_msg->fpm_header.subtype = htonl(exp_hdr->type);
 
+            loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
             loc_entry->id = exp_msg->fpm_entry->id;
             loc_entry->offset = htonl(exp_msg->fpm_entry->offset);
             loc_entry->len = htonl(exp_msg->fpm_entry->len);
@@ -66,8 +66,23 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             break;
         }
 
-        case OFP_FPM_DEL:
+        case OFP_FPM_DEL: {
+            struct of_fpm_msg   *loc_msg = NULL;
+            struct of_fpm_entry *loc_entry = NULL;
+
+            exp_msg = (struct ofl_exp_fpm_msg *) exp_hdr;
+            *buf_len = sizeof(*loc_msg);
+            *buf = (uint8_t *) calloc(1, *buf_len);
+
+            loc_msg = (struct of_fpm_msg *) (*buf);
+            loc_msg->fpm_header.vendor =
+                htonl(exp_hdr->header.experimenter_id);
+            loc_msg->fpm_header.subtype = htonl(exp_hdr->type);
+
+            loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
+            loc_entry->id = exp_msg->fpm_entry->id;
             break;
+        }
 
         case OFP_FPM_MOD:
             break;
@@ -112,7 +127,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
         goto error_exit;
     }
 
-    switch (in_hdr->subtype) {
+    switch (ntohl(in_hdr->subtype)) {
         case OFP_FPM_ADD: {
             struct ofl_exp_fpm_msg  *exp_msg = NULL;
             struct of_fpm_entry     *exp_entry = NULL;
@@ -129,22 +144,49 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             in_msg = (struct of_fpm_msg *) in_hdr;
             exp_msg = (struct ofl_exp_fpm_msg *) calloc(1, sizeof(*exp_msg));
             exp_entry = (struct of_fpm_entry *) calloc(1, sizeof(*exp_entry));
-            exp_msg->fpm_entry = exp_entry;
 
             exp_msg->header.header.experimenter_id =
                 ntohl(in_msg->fpm_header.vendor);
             exp_msg->header.type = ntohl(in_msg->fpm_header.subtype);
+
+            exp_msg->fpm_entry = exp_entry;
             exp_entry->id = in_msg->fpm_entry.id;
             exp_entry->offset = ntohl(in_msg->fpm_entry.offset);
             exp_entry->len = ntohl(in_msg->fpm_entry.len);
             memcpy(exp_entry->match, in_msg->fpm_entry.match,
                     FPM_MAX_LEN + 1);
+
             *msg = (struct ofl_msg_experimenter *) exp_msg;
             return 0;
         }
 
-        case OFP_FPM_DEL:
-            break;
+        case OFP_FPM_DEL: {
+            struct ofl_exp_fpm_msg  *exp_msg = NULL;
+            struct of_fpm_entry     *exp_entry = NULL;
+
+            if (*len < sizeof(*in_msg)) {
+                OFL_LOG_WARN(LOG_MODULE,
+                    "Received OFP_FPM_ADD message has invalid length, %zu.",
+                    *len);
+                err_code = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+                goto error_exit;
+            }
+            *len -= sizeof(*in_msg);
+
+            in_msg = (struct of_fpm_msg *) in_hdr;
+            exp_msg = (struct ofl_exp_fpm_msg *) calloc(1, sizeof(*exp_msg));
+            exp_entry = (struct of_fpm_entry *) calloc(1, sizeof(*exp_entry));
+
+            exp_msg->header.header.experimenter_id =
+                ntohl(in_msg->fpm_header.vendor);
+            exp_msg->header.type = ntohl(in_msg->fpm_header.subtype);
+
+            exp_msg->fpm_entry = exp_entry;
+            exp_entry->id = in_msg->fpm_entry.id;
+
+            *msg = (struct ofl_msg_experimenter *) exp_msg;
+            return 0;
+        }
 
         case OFP_FPM_MOD:
             break;
@@ -181,11 +223,9 @@ ofl_exp_fpm_msg_free(struct ofl_msg_experimenter *msg)
     exp_hdr = (struct ofl_exp_fpm_msg_header *) msg;
     switch (exp_hdr->type) {
         case OFP_FPM_ADD:
+        case OFP_FPM_DEL:
             exp_msg = (struct ofl_exp_fpm_msg *) exp_hdr;
             free(exp_msg->fpm_entry);
-            break;
-
-        case OFP_FPM_DEL:
             break;
 
         case OFP_FPM_MOD:
@@ -218,7 +258,9 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
     char                            *str = NULL;
     size_t                          str_size;
     FILE                            *stream = NULL;
-    struct ofl_exp_fpm_msg_header   *exp = NULL;
+    struct of_fpm_entry             *entry = NULL;
+    struct ofl_exp_fpm_msg          *exp_msg = NULL;
+    struct ofl_exp_fpm_msg_header   *exp_hdr = NULL;
 
     if (!IS_FPM_EXPT(msg->experimenter_id)) {
         OFL_LOG_WARN(LOG_MODULE,
@@ -227,19 +269,18 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
     }
 
     stream = open_memstream(&str, &str_size);
-    exp = (struct ofl_exp_fpm_msg_header *) msg;
+    exp_hdr = (struct ofl_exp_fpm_msg_header *) msg;
+    exp_msg = (struct ofl_exp_fpm_msg *) msg;
+    entry = (struct of_fpm_entry *) exp_msg->fpm_entry;
 
-    switch (exp->type) {
-        case OFP_FPM_ADD: {
-            struct ofl_exp_fpm_msg *fpm_msg = (struct ofl_exp_fmp_msg *) msg;
-            struct of_fpm_entry *entry =
-                (struct of_fpm_entry *) fpm_msg->fpm_entry;
-            fprintf(stream, "-fpm-mod {id=%u, offset=%u, len=%u, match=%s}",
+    switch (exp_hdr->type) {
+        case OFP_FPM_ADD:
+            fprintf(stream, "-fpm-add {id=%u, offset=%u, len=%u, match=%s}",
                     entry->id, entry->offset, entry->len, entry->match);
             break;
-        }
 
         case OFP_FPM_DEL:
+            fprintf(stream, "-fpm-del {id=%u}", entry->id);
             break;
 
         case OFP_FPM_MOD:

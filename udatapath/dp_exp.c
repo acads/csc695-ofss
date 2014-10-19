@@ -107,7 +107,11 @@ dp_exp_message(struct datapath *dp,
 
             switch (exp_hdr->type) {
                 case OFP_FPM_ADD:
-                    return dp_fpm_handle_modify(dp,
+                    return dp_fpm_handle_add(dp,
+                            (struct ofl_exp_fpm_msg *) msg, sender);
+
+                case OFP_FPM_DEL:
+                    return dp_fpm_handle_del(dp,
                             (struct ofl_exp_fpm_msg *) msg, sender);
 
                 default:

@@ -65,9 +65,9 @@ OFP_ASSERT(sizeof(struct ofl_exp_msg) % 4 == 0);
 
 /* FPM table */
 struct of_fpm_table {
-    struct of_fpm_msg  *fpm_entries[FPM_MAX_ID + 1];
-    uint32_t           fpm_nref[FPM_MAX_ID + 1];
-    uint8_t            nfpm;
+    struct of_fpm_msg  *entries[FPM_MAX_ID + 1];
+    uint32_t           nref[FPM_MAX_ID + 1];
+    uint8_t            count;
 };
 #endif /* FPM_EXT_H */
 

@@ -833,7 +833,7 @@ set_desc(struct vconn *vconn, int argc UNUSED, char *argv[]) {
 
 #ifdef OFP_FPM
 static void
-fpm_mod(struct vconn *vconn, int argc UNUSED, char *argv[])
+fpm_add(struct vconn *vconn, int argc UNUSED, char *argv[])
 {
     struct of_fpm_entry     *entry = NULL;
     struct ofl_exp_fpm_msg  msg = {
@@ -855,10 +855,12 @@ fpm_mod(struct vconn *vconn, int argc UNUSED, char *argv[])
             FPM_MAX_LEN);
     }
 
+#if 0
     printf("exp_id 0x%x, id %u, offset %d, len %d, match %s\n",
             msg.header.header.experimenter_id, msg.fpm_entry->id,
             msg.fpm_entry->offset, msg.fpm_entry->len,
             msg.fpm_entry->match);
+#endif
 
     dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
     return;
@@ -867,6 +869,19 @@ fpm_mod(struct vconn *vconn, int argc UNUSED, char *argv[])
 static void
 fpm_del(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
 {
+    struct of_fpm_entry     *entry = NULL;
+    struct ofl_exp_fpm_msg  msg = {
+        {{{.type = OFPT_EXPERIMENTER},
+           .experimenter_id = OFP_EXP_FPM_ID},
+           .type = OFP_FPM_DEL},
+           .fpm_entry = NULL};
+
+    entry = xmalloc(sizeof(*entry));
+    memset(entry, 0, sizeof(*entry));
+    msg.fpm_entry = entry;
+    entry->id = atoi(argv[0]);
+
+    dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
     return;
 }
 
@@ -991,7 +1006,7 @@ static struct command all_commands[] = {
     {"set-table-match", 0, 2, set_table_features_match},
 
 #ifdef OFP_FPM
-    {"fpm-mod", 4, 4, fpm_mod},
+    {"fpm-add", 4, 4, fpm_add},
     {"fpm-del", 1, 1, fpm_del},
     {"fpm-desc", 1, 1, fpm_desc},
     {"fpm-stats", 0, 1, fpm_stats},
@@ -1161,7 +1176,8 @@ usage(void)
             "  SWITCH queue-mod PORT QUEUE BW         adds/modifies queue\n"
             "  SWITCH queue-del PORT QUEUE            deletes queue\n"
 #ifdef OFP_FPM
-            "  SWITCH fpm-mod ID OFFSET LEN MATCH     adds a new FPM\n"
+            "  SWITCH fpm-add ID OFFSET LEN MATCH     adds a new FPM\n"
+            "  SWITCH fpm-del ID                      deletes a FPM\n"
 #endif /* OFP_FPM */
             "\n",
             program_name, program_name);
