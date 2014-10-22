@@ -270,6 +270,18 @@ ofl_msg_print_stats_request_queue(struct ofl_msg_multipart_request_queue *msg, F
     fprintf(stream, "\"");
 }
 
+#ifdef OFP_FPM
+static void
+ofl_msg_print_stats_request_fpm(struct ofl_msg_multipart_request_fpm *msg,
+        FILE *stream)
+{
+    if (FPM_ALL_ID == msg->id)
+        fprintf(stream, ", id=all");
+    else
+        fprintf(stream, ", id=%u", msg->id);
+}
+#endif /* OFP_FPM */
+
 static void
 ofl_msg_print_stats_request_group(struct ofl_msg_multipart_request_group *msg, FILE *stream) {
     fprintf(stream, ", group=\"");
@@ -340,6 +352,13 @@ ofl_msg_print_multipart_request(struct ofl_msg_multipart_request_header *msg, FI
             ofl_msg_print_stats_request_queue((struct ofl_msg_multipart_request_queue *)msg, stream);
             break;
         }
+#ifdef OFP_FPM
+        case OFPMP_FPM: {
+            ofl_msg_print_stats_request_fpm((struct
+                        ofl_msg_multipart_request_fpm *) msg, stream);
+            break;
+        }
+#endif /* OFP_FPM */
         case OFPMP_GROUP: {
             ofl_msg_print_stats_request_group((struct ofl_msg_multipart_request_group *)msg, stream);
             break;
@@ -435,6 +454,26 @@ ofl_msg_print_stats_reply_queue(struct ofl_msg_multipart_reply_queue *msg, FILE 
 
     fprintf(stream, "]");
 }
+
+#ifdef OFP_FPM
+static void
+ofl_msg_print_stats_reply_fpm(struct ofl_msg_multipart_reply_fpm *msg,
+        FILE *stream)
+{
+    size_t                      i = 0;
+    struct of_fpm_stats_entry   *stats = NULL;
+
+    fprintf(stream, ", stats=[\n");
+    for (i = 0; i < msg->stats_num; ++i) {
+        stats = msg->stats[i];
+        fprintf(stream, "id=%u, offset=%u, len=%u, match=%s, ref_count=%u\n",
+            stats->id, stats->offset, stats->len, stats->match, stats->nref);
+    }
+    fprintf(stream, "]\n");
+
+    return;
+}
+#endif /* OFP_FPM */
 
 static void
 ofl_msg_print_stats_reply_group(struct ofl_msg_multipart_reply_group *msg, FILE *stream) {
@@ -612,6 +651,13 @@ ofl_msg_print_multipart_reply(struct ofl_msg_multipart_reply_header *msg, FILE *
             ofl_msg_print_stats_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, stream);
             break;
         }
+#ifdef OFP_FPM
+        case OFPMP_FPM: {
+            ofl_msg_print_stats_reply_fpm((struct
+                        ofl_msg_multipart_reply_fpm *) msg, stream);
+            break;
+        }
+#endif /* OFP_FPM */
         case (OFPMP_GROUP): {
             ofl_msg_print_stats_reply_group((struct ofl_msg_multipart_reply_group *)msg, stream);
             break;

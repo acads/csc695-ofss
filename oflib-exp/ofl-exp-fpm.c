@@ -84,12 +84,22 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             break;
         }
 
-        case OFP_FPM_MOD:
+        case OFP_FPM_LOGS: {
+            struct of_fpm_msg *loc_msg = NULL;
+
+            exp_msg = (struct ofl_exp_fpm_ms *) exp_hdr;
+            *buf_len = sizeof(*loc_msg);
+            *buf = (uint8_t *) calloc(1, *buf_len);
+
+            loc_msg = (struct of_fpm_msg *) (*buf);
+            loc_msg->fpm_header.vendor =
+                htonl(exp_hdr->header.experimenter_id);
+            loc_msg->fpm_header.subtype = htonl(exp_hdr->type);
             break;
+        }
 
         case OFP_FPM_STAT:
-            break;
-
+        case OFP_FPM_MOD:
         case OFP_FPM_DESC:
             break;
 
@@ -166,7 +176,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
 
             if (*len < sizeof(*in_msg)) {
                 OFL_LOG_WARN(LOG_MODULE,
-                    "Received OFP_FPM_ADD message has invalid length, %zu.",
+                    "Received OFP_FPM_DEL message has invalid length, %zu.",
                     *len);
                 err_code = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                 goto error_exit;
@@ -188,12 +198,32 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             return 0;
         }
 
-        case OFP_FPM_MOD:
-            break;
+        case OFP_FPM_LOGS: {
+            struct ofl_exp_fpm_msg  *exp_msg = NULL;
+
+            if (*len < sizeof(*in_msg)) {
+                OFL_LOG_WARN(LOG_MODULE,
+                    "Received OFP_FPM_LOGS message has invalid length, %zu.",
+                    *len);
+                err_code = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+                goto error_exit;
+            }
+            *len -= sizeof(*in_msg);
+
+            in_msg = (struct of_fpm_msg *) in_hdr;
+            exp_msg = (struct ofl_exp_fpm_msg *) calloc(1, sizeof(*exp_msg));
+
+            exp_msg->header.header.experimenter_id =
+                ntohl(in_msg->fpm_header.vendor);
+            exp_msg->header.type = ntohl(in_msg->fpm_header.subtype);
+            exp_msg->fpm_entry = NULL;
+
+            *msg = (struct ofl_msg_experimenter *) exp_msg;
+            return 0;
+        }
 
         case OFP_FPM_STAT:
-            break;
-
+        case OFP_FPM_MOD:
         case OFP_FPM_DESC:
             break;
 
@@ -228,12 +258,9 @@ ofl_exp_fpm_msg_free(struct ofl_msg_experimenter *msg)
             free(exp_msg->fpm_entry);
             break;
 
-        case OFP_FPM_MOD:
-            break;
-
+        case OFP_FPM_LOGS:
         case OFP_FPM_STAT:
-            break;
-
+        case OFP_FPM_MOD:
         case OFP_FPM_DESC:
             break;
 
@@ -258,6 +285,7 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
     char                            *str = NULL;
     size_t                          str_size;
     FILE                            *stream = NULL;
+    uint8_t                         id = 0;
     struct of_fpm_entry             *entry = NULL;
     struct ofl_exp_fpm_msg          *exp_msg = NULL;
     struct ofl_exp_fpm_msg_header   *exp_hdr = NULL;
@@ -283,12 +311,24 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
             fprintf(stream, "-fpm-del {id=%u}", entry->id);
             break;
 
+        case OFP_FPM_LOGS:
+            fprintf(stream, "-fpm-logs");
+            break;
+
+        case OFP_FPM_STAT: {
+            uint8_t                             id = 0;
+            struct ofl_exp_fpm_stats_request    *exp_req = NULL;
+
+            exp_req = (struct ofl_exp_fpm_stats_request *) msg;
+            id = exp_req->id;
+            if (FPM_ALL_ID == id)
+                fprintf(stream, "-fpm-stat");
+            else
+                fprintf(stream, "-fpm-stat {id=%u}", id);
+            break;
+        }
+
         case OFP_FPM_MOD:
-            break;
-
-        case OFP_FPM_STAT:
-            break;
-
         case OFP_FPM_DESC:
             break;
 

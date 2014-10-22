@@ -165,5 +165,135 @@ error_exit:
     return err_code;
 }
 
+ofl_err
+dp_fpm_handle_logs(struct datapath *dp UNUSED,
+        struct ofl_exp_fpm_msg *exp_msg UNUSED,
+        const struct sender *sender UNUSED)
+{
+    ofl_err             err_code = 0;
+    uint8_t             id = 0;
+    uint32_t            nentries = 0;
+    struct of_fpm_entry *e = NULL;
+
+    VLOG_INFO(LOG_MODULE, "Received fp-logs.");
+
+    nentries = fpm_get_count();
+    if (!nentries) {
+        VLOG_INFO(LOG_MODULE, "No FPMs has been configured.");
+        return err_code;
+    }
+
+    for (id = 0; (id <= FPM_MAX_ID); ++id) {
+        if (!fpm_is_id_present(id))
+            continue;
+
+        e = (struct of_fpm_entry *) g_fpm_table.entries[id];
+        VLOG_INFO(LOG_MODULE,
+            "fpm-stats: id %u, offset %u, len %u, match \"%s\", nref %u",
+            e->id, e->offset, e->len, e->match, fpm_get_id_ref_count(e->id));
+    }
+
+    return err_code;
+}
+
+ofl_err
+dp_fpm_handle_stats(struct datapath *dp,
+        struct ofl_msg_multipart_request_fpm *msg,
+        const struct sender *sender)
+{
+    uint8_t                             id = 0;
+    ofl_err                             err_code = 0;
+    struct of_fpm_entry                 *loc_entry = NULL;
+    struct of_fpm_stats_entry           *stats_entry = NULL;
+    struct ofl_msg_multipart_reply_fpm  reply = {
+        {{.type = OFPT_MULTIPART_REPLY},
+        .type = OFPMP_FPM, .flags = 0x0000},
+        .stats_num = 0,
+        .stats = NULL
+    };
+
+    id = msg->id;
+    if (FPM_ALL_ID == id) {
+        VLOG_INFO(LOG_MODULE,
+                "FPM stats request received for sent for all available IDs.");
+        reply.stats_num = fpm_get_count();
+        reply.stats = xmalloc(reply.stats_num * sizeof(*stats_entry));
+        stats_entry = (struct of_fpm_stats_entry *) reply.stats;
+
+        for (id = 0; (id <= FPM_MAX_ID) && (fpm_is_id_present(id)); ++id) {
+            loc_entry = (struct of_fpm_entry *) g_fpm_table.entries[id];
+
+            stats_entry->id = loc_entry->id;
+            stats_entry->offset = loc_entry->offset;
+            stats_entry->len = loc_entry->len;
+            memcpy(stats_entry->match, loc_entry->match, FPM_MAX_LEN);
+            stats_entry->nref = fpm_get_id_ref_count(id);
+
+            stats_entry += 1;
+        }
+        VLOG_INFO(LOG_MODULE, "FPM stats sent for all available IDs.");
+    } else {
+        uint8_t *tmp;
+
+        VLOG_INFO(LOG_MODULE, "FPM stats request received for id %u.", id);
+        if (!fpm_is_id_present(id)) {
+            VLOG_ERR(LOG_MODULE, "FPM id %u has not been configured.", id);
+            err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_ID_EXISTS);
+            goto error_exit;
+        }
+
+        reply.stats_num = 1;
+        reply.stats = xmalloc(sizeof(*stats_entry) * 1);
+        loc_entry = (struct of_fpm_entry *) g_fpm_table.entries[id];
+
+        stats_entry = (struct of_fpm_stats_entry *) reply.stats[0];
+        stats_entry->id = loc_entry->id;
+        stats_entry->offset = loc_entry->offset;
+        stats_entry->len = loc_entry->len;
+        strncpy(stats_entry->match, loc_entry->match, strlen(loc_entry->match));
+        stats_entry->nref = fpm_get_id_ref_count(id);
+
+        VLOG_INFO(LOG_MODULE, "FPM stats sent for id %u.", id);
+    }
+
+
+    dp_send_message(dp, (struct ofl_msg_header *) &reply, sender);
+
+    free(reply.stats);
+    ofl_msg_free((struct ofl_msg_header *) msg, dp->exp);
+
+    return err_code;
+
+error_exit:
+    return err_code;
+}
+
+#if 0
+ofl_err
+dp_fpm_handle_stat(uint8_t id, struct ofp_fpm_stats_entry *stats_entry)
+{
+    ofl_err err_code = 0;
+
+    if (!fpm_is_id_present(in_entry->id)) {
+        VLOG_ERR(LOG_MODULE, "FPM id %u has not been configured.",
+                in_entry->id);
+        err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_ID_EXISTS);
+        goto error_exit;
+    }
+
+    loc_entry = (struct of_fpm_entry *) g_fpm_table.entries[id];;
+    stats_entry->id = loc_entry->id;
+    stats_entry->offset = htonl(loc_entry->offset);
+    stats_entry->len = htonl(loc_entry->len);
+    memcpy(stats_entry->match, loc_entry->match, FPM_MAX_LEN);
+    stats_entry->nref = htonl(fpm_get_id_ref_count(id));
+
+    return err_code;
+
+error_exit:
+    return err_code;
+}
+#endif
+
 #endif /* OFP_FPM */
 

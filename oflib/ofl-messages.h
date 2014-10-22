@@ -40,6 +40,9 @@
 #include "ofl.h"
 #include "ofl-structs.h"
 #include "ofl-actions.h"
+#ifdef OFP_FPM
+#include "../include/openflow/fpm-ext.h"
+#endif /* OFP_FPM */
 
 
 /****************************************************************************
@@ -306,6 +309,13 @@ struct ofl_msg_multipart_request_queue {
     uint32_t   queue_id; /* All queues if OFPQ_ALL. */
 };
 
+#ifdef OFP_FPM
+struct ofl_msg_multipart_request_fpm {
+    struct ofl_msg_multipart_request_header header; /* OFPMP_FPM */
+    uint8_t                                 id;
+};
+#endif /* OFP_FPM */
+
 struct ofl_msg_multipart_request_group {
     struct ofl_msg_multipart_request_header   header; /* OFPMP_GROUP */
     uint32_t   group_id; /* All groups if OFPG_ALL. */
@@ -389,6 +399,14 @@ struct ofl_msg_multipart_reply_queue {
     size_t                   stats_num;
     struct ofl_queue_stats **stats;
 };
+
+#ifdef OFP_FPM
+struct ofl_msg_multipart_reply_fpm {
+    struct ofl_msg_multipart_reply_header   header; /* OFPMP_FPM */
+    size_t                                  stats_num;
+    struct of_fpm_stats_entry               **stats;
+};
+#endif /* OFP_FPM */
 
 struct ofl_msg_multipart_reply_group {
     struct ofl_msg_multipart_reply_header   header; /* OFPMP_GROUP */

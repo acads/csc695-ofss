@@ -38,6 +38,9 @@
 #include "ofl-log.h"
 #include "ofl-utils.h"
 #include "openflow/openflow.h"
+#ifdef OFP_FPM
+#include "openflow/fpm-ext.h"
+#endif /* OFP_FPM */
 
 #define UNUSED __attribute__((__unused__))
 
@@ -430,6 +433,25 @@ ofl_msg_pack_multipart_request_queue(struct ofl_msg_multipart_request_queue *msg
     return 0;
 }
 
+#ifdef OFP_FPM
+static int
+ofl_msg_pack_multipart_request_fpm(struct ofl_msg_multipart_request_fpm *msg,
+        uint8_t **buf, size_t *buf_len)
+{
+    struct ofp_multipart_request *req;
+    struct ofp_fpm_stats_request *stats;
+
+    *buf_len = sizeof(*req) + sizeof(*stats);
+    *buf = (uint8_t *) malloc(*buf_len);
+
+    req = (struct ofp_multipart_request *) (*buf);
+    stats = (struct ofp_fpm_stats_request *) req->body;
+    stats->id = msg->id;
+
+    return 0;
+}
+#endif /* OFP_FPM */
+
 static int
 ofl_msg_pack_multipart_request_group(struct ofl_msg_multipart_request_group *msg UNUSED, uint8_t **buf, size_t *buf_len) {
     struct ofp_multipart_request *req;
@@ -521,6 +543,13 @@ ofl_msg_pack_multipart_request(struct ofl_msg_multipart_request_header *msg, uin
         error = ofl_msg_pack_multipart_request_queue((struct ofl_msg_multipart_request_queue *)msg, buf, buf_len);
         break;
     }
+#ifdef OFP_FPM
+    case OFPMP_FPM: {
+        error = ofl_msg_pack_multipart_request_fpm((struct
+                    ofl_msg_multipart_request_fpm *) msg, buf, buf_len);
+        break;
+    }
+#endif /* OFP_FPM */
     case OFPMP_GROUP: {
         error = ofl_msg_pack_multipart_request_group((struct ofl_msg_multipart_request_group *)msg, buf, buf_len);
         break;
@@ -691,6 +720,35 @@ ofl_msg_pack_multipart_reply_queue(struct ofl_msg_multipart_reply_queue *msg, ui
     }
     return 0;
 }
+
+#ifdef OFP_FPM
+static int
+ofl_msg_pack_multipart_reply_fpm(struct ofl_msg_multipart_reply_fpm *msg,
+        uint8_t **buf, size_t *buf_len)
+{
+    size_t                      i;
+    struct ofp_multipart_reply  *reply;
+    struct of_fpm_stats_entry   *stats_entry;
+
+    *buf_len = sizeof(*reply) + (msg->stats_num * sizeof(*stats_entry));
+    *buf = (uint8_t *) malloc(*buf_len);
+
+    reply = (struct ofp_multipart_reply *) (*buf);
+    stats_entry = (struct of_fpm_stats_entry *) reply->body;
+
+    for (i = 0; i < msg->stats_num; ++i) {
+        stats_entry->id = msg->stats[i]->id;
+        stats_entry->offset = htonl(msg->stats[i]->offset);
+        stats_entry->len = htonl(msg->stats[i]->len);
+        memcpy(stats_entry->match, msg->stats[i]->match, FPM_MAX_LEN);
+        stats_entry->nref = htonl(msg->stats[i]->nref);
+
+        stats_entry += 1;
+    }
+
+    return 0;
+}
+#endif /* OFP_FPM */
 
 static int
 ofl_msg_pack_multipart_reply_group(struct ofl_msg_multipart_reply_group *msg, uint8_t **buf, size_t *buf_len) {
@@ -878,6 +936,13 @@ ofl_msg_pack_multipart_reply(struct ofl_msg_multipart_reply_header *msg, uint8_t
             error = ofl_msg_pack_multipart_reply_queue((struct ofl_msg_multipart_reply_queue *)msg, buf, buf_len);
             break;
         }
+#ifdef OFP_FPM
+        case OFPMP_FPM: {
+            error = ofl_msg_pack_multipart_reply_fpm((struct
+                        ofl_msg_multipart_reply_fpm *) msg, buf, buf_len);
+            break;
+        }
+#endif /* OFP_FPM */
         case OFPMP_GROUP: {
             error = ofl_msg_pack_multipart_reply_group((struct ofl_msg_multipart_reply_group *)msg, buf, buf_len);
             break;

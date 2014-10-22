@@ -834,6 +834,33 @@ ofl_msg_unpack_multipart_request_queue(struct ofp_multipart_request *os, size_t 
     return 0;
 }
 
+#ifdef OFP_FPM
+static ofl_err
+ofl_msg_unpack_multipart_request_fpm(struct ofp_multipart_request *os,
+        size_t *len, struct ofl_msg_header **msg)
+{
+    struct of_fpm_stats_request             *fpm_req;
+    struct ofl_msg_multipart_request_fpm    *mp_fpm_req;
+
+    if (*len < sizeof(*fpm_req)) {
+        OFL_LOG_WARN(LOG_MODULE,
+                "Received FPM_STATS request with invalid length %zu.",
+                ntohl(*len));
+        return ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+    }
+
+    fpm_req = (struct of_fpm_stats_request *) os->body;
+    *len -= sizeof(*fpm_req);
+
+    mp_fpm_req =
+        (struct ofl_msg_multipart_request_fpm *) malloc(sizeof(*mp_fpm_req));
+    mp_fpm_req->id = fpm_req->id;
+    *msg = (struct ofl_msg_header *) mp_fpm_req;
+
+    return 0;
+}
+#endif /* OFP_FPM */
+
 static ofl_err
 ofl_msg_unpack_multipart_request_group(struct ofp_multipart_request *os, size_t *len, struct ofl_msg_header **msg) {
     struct ofp_group_stats_request *sm;
@@ -918,6 +945,12 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             error = ofl_msg_unpack_multipart_request_queue(os, len, msg);
             break;
         }
+#ifdef OFP_FPM
+        case OFPMP_FPM: {
+            error = ofl_msg_unpack_multipart_request_fpm(os, len, msg);
+            break;
+        }
+#endif /* OFP_FPM */
         case OFPMP_GROUP: {
             error = ofl_msg_unpack_multipart_request_group(os, len, msg);
             break;
@@ -953,6 +986,9 @@ ofl_msg_unpack_multipart_request(struct ofp_header *src,uint8_t *buf, size_t *le
             break;
         }
         default: {
+            OFL_LOG_WARN(LOG_MODULE,
+                    "Received OFPT_MULTIPART_REQUEST of unknown type 0x%x.",
+                    ntohs(os->type));
             error = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
         }
     }

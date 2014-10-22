@@ -867,7 +867,7 @@ fpm_add(struct vconn *vconn, int argc UNUSED, char *argv[])
 }
 
 static void
-fpm_del(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
+fpm_del(struct vconn *vconn UNUSED, int argc, char *argv[] UNUSED)
 {
     struct of_fpm_entry     *entry = NULL;
     struct ofl_exp_fpm_msg  msg = {
@@ -881,9 +881,61 @@ fpm_del(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
     msg.fpm_entry = entry;
     entry->id = atoi(argv[0]);
 
+    printf("argc %u\n", argc);
+
     dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
     return;
 }
+
+static void
+fpm_stats(struct vconn *vconn UNUSED, int argc, char *argv[] UNUSED)
+{
+    struct ofl_msg_multipart_request_fpm req = {
+        {
+            {.type = OFPT_MULTIPART_REQUEST},
+            .type = OFPMP_FPM, .flags = 0x0000
+        },
+        .id = FPM_MAX_ID
+    };
+
+    if (argc)
+        req.id = atoi(argv[0]);
+
+    dpctl_transact_and_print(vconn, (struct ofl_msg_header *) &req, NULL);
+    return;
+}
+
+static void
+fpm_logs(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
+{
+    struct ofl_exp_fpm_msg  msg = {
+        {{{.type = OFPT_EXPERIMENTER},
+           .experimenter_id = OFP_EXP_FPM_ID},
+           .type = OFP_FPM_LOGS},
+           .fpm_entry = NULL};
+
+    dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
+    return;
+}
+
+#if 0
+static void
+fpm_stats(struct vconn *vconn UNUSED, int argc, char *argv[] UNUSED)
+{
+    struct of_fpm_entry                 *entry = NULL;
+    struct ofl_exp_fpm_stats_request    req = {
+        {{{.type = OFPT_EXPERIMENTER},
+           .experimenter_id = OFP_EXP_FPM_ID},
+           .type = OFP_FPM_DEL},
+           .id = FPM_MAX_ID};
+
+    if (argc)
+        req.id = atoi(argv[0]);
+
+    dpctl_send_and_print(vconn, (struct ofl_msg_header *) &req);
+    return;
+}
+#endif
 
 static void
 fpm_desc(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
@@ -891,11 +943,6 @@ fpm_desc(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
     return;
 }
 
-static void
-fpm_stats(struct vconn *vconn UNUSED, int argc UNUSED, char *argv[] UNUSED)
-{
-    return;
-}
 #endif /* OFP_FPM */
 
 static void
@@ -1008,8 +1055,9 @@ static struct command all_commands[] = {
 #ifdef OFP_FPM
     {"fpm-add", 4, 4, fpm_add},
     {"fpm-del", 1, 1, fpm_del},
-    {"fpm-desc", 1, 1, fpm_desc},
     {"fpm-stats", 0, 1, fpm_stats},
+    {"fpm-logs", 0, 1, fpm_logs},
+    {"fpm-desc", 1, 1, fpm_desc},
 #endif /* OFP_FPM */
 
     {"queue-mod", 3, 3, queue_mod},

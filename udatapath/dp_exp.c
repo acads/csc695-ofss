@@ -114,6 +114,10 @@ dp_exp_message(struct datapath *dp,
                     return dp_fpm_handle_del(dp,
                             (struct ofl_exp_fpm_msg *) msg, sender);
 
+                case OFP_FPM_LOGS:
+                    return dp_fpm_handle_logs(dp,
+                            (struct ofl_exp_fpm_msg *)msg, sender);
+
                 default:
                     VLOG_WARN_RL(LOG_MODULE, &rl,
                             "Trying to handle unknow subtype of OFP_EXP_FPM_ID");

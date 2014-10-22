@@ -948,6 +948,12 @@ enum ofp_multipart_types {
     * The request body is empty.
     * The reply body is an array of struct ofp_port. */
     OFPMP_PORT_DESC = 13,
+
+#ifdef OFP_FPM
+    /* FPM statistics */
+    OFPMP_FPM = 0xff,
+#endif /* OFP_FPM */
+
     /* Experimenter extension.
     * The request and reply bodies begin with
     * struct ofp_experimenter_stats_header.
@@ -1226,6 +1232,12 @@ struct ofp_queue_stats {
                                 duration_sec. */
 };
 OFP_ASSERT(sizeof(struct ofp_queue_stats) == 40);
+
+#ifdef OFP_FPM
+struct ofp_fpm_stats_request {
+    uint8_t id; /* FPM ID, FPM_ALL_ID for all available IDs */
+};
+#endif /* OFP_FPM */
 
 /* Body of OFPMP_GROUP request. */
 struct ofp_group_stats_request {

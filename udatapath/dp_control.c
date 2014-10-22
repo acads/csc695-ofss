@@ -206,6 +206,12 @@ handle_control_stats_request(struct datapath *dp,
         case (OFPMP_QUEUE): {
             return dp_ports_handle_stats_request_queue(dp, (struct ofl_msg_multipart_request_queue *)msg, sender);
         }
+#ifdef OFP_FPM
+        case (OFPMP_FPM): {
+            return dp_fpm_handle_stats(dp, (struct
+                        ofl_msg_multipart_request_fpm *) msg, sender);
+        }
+#endif /* OFP_FPM */
         case (OFPMP_GROUP): {
             return group_table_handle_stats_request_group(dp->groups, (struct ofl_msg_multipart_request_group *)msg, sender);
         }

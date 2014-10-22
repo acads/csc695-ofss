@@ -27,6 +27,17 @@ struct ofl_exp_fpm_msg {
     struct of_fpm_entry             *fpm_entry;
 };
 
+struct ofl_exp_fpm_stats_request {
+    struct ofl_exp_fpm_msg_header   fpm_exp_header;
+    uint8_t                         id;
+};
+
+struct ofl_exp_fpm_stats_reply {
+    struct ofl_exp_fpm_msg_header   fpm_header;
+    uint32_t                        fpm_num_entries;
+    struct of_fpm_entry             *fpm_entries;
+};
+
 /* Function declarations */
 inline bool
 fpm_is_id_valid(uint8_t id);
