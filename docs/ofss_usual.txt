@@ -1,0 +1,42 @@
+
+
+Fix Description
+===============
+
+Stats
+=====
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo gdb udatapath/ofdatapath
+break udatapath/dp_fpm.c:184
+break oflib/ofl-messages-pack.c:736
+run -i s1-eth1,s1-eth2 punix:/tmp/s1 -d 000000000001  1> /tmp/s1-ofd.log 2> /tmp/s1-ofd.log
+
+ofl_msg_pack_multipart_reply_fpm
+dp_fpm_handle_stats
+dp_ports_handle_stats_request_queue
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Meeting notes - 10/21
+Done
+    - Wrote intro for EN SDN challenge
+    - FPM table design over.. identified the routines that has to be written
+    - Started making dpctl related changes for FPM
+
+Todo
+    - Finish dpctl changes  for fpm
+    - Invesitgate/start with datapath related changes for fpm table 
+    - Implementation of actual payload match code
+    - Testing (dpctl and payload match) on virtual environment
+
+    - Slides for flow table lookup (max of 2-3)
+    - Short (< 10 mins) video for flow table lookup (general + fpm)
+    - Fpm vide of ExN SDN challenge
+
+    
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Todo
+    - Fix fpm-stats crash
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+

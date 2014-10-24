@@ -1,0 +1,46 @@
+packet_match @ udatapath/match_std.c
+====================================
+table=0,eth_type=0x0806
+(gdb) p *f
+$2 = {hmap_node = {hash = 1659846147, next = 0x0}, header = 2147486210, 
+  value = 0x1656e30 "\006\bD\367\377\177"}
+
+table=9,meta=0x2
+(gdb) p *f
+$8 = {hmap_node = {hash = 592139993, next = 0x0}, header = 2147484680, value = 0x165a290 "\002"}
+
+remote_rconn_run @ udatapath/datapath.c
+
+(gdb) break udatapath/datapath.c:276
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How 'header' is created in ofl_match in dpctl while sending a flow-mod
+======================================================================
+
+parse_match @ utilities/dpctl.c
+        /* Eth Type */
+        if (strncmp(token, MATCH_DL_TYPE KEY_VAL, strlen(MATCH_DL_TYPE KEY_VAL)) == 0) {
+            uint16_t dl_type;
+            if (parse16(token + strlen(MATCH_DL_TYPE KEY_VAL), NULL, 0, 0xffff, &dl_type)) {
+                ofp_fatal(0, "Error parsing eth_type: %s.", token);
+            } else {
+                ofl_structs_match_put16(m, OXM_OF_ETH_TYPE,dl_type);
+                continue;
+            }
+        }                  
+
+ofl_structs_match_put16 @ utilities/dpctl.c
+void                                                                              
+ofl_structs_match_put16(struct ofl_match *match, uint32_t header, uint16_t value) {
+    struct ofl_match_tlv *m = malloc(sizeof (struct ofl_match_tlv));  
+    int len = sizeof(uint16_t);
+
+    m->header = header;
+    m->value = malloc(len);
+    memcpy(m->value, &value, len);
+    hmap_insert(&match->match_fields,&m->hmap_node,hash_int(header, 0));
+    match->header.length += len + 4;
+}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
