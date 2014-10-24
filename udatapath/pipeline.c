@@ -50,6 +50,11 @@
 #include "util.h"
 #include "hash.h"
 #include "oflib/oxm-match.h"
+#ifdef OFP_FPM
+#include "oflib/oxm-match.h"
+#include "../include/openflow/fpm-ext.h"
+#include "dp_fpm.h"
+#endif /* OFP_FPM */
 #include "vlog.h"
 
 
@@ -121,6 +126,10 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
+#ifdef OFP_FPM
+    uint8_t fpm_id = FPM_ALL_ID;
+    uint8_t curr_table_id = 0;
+#endif
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
         char *pkt_str = packet_to_string(pkt);
@@ -149,6 +158,34 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         pkt->table_id = next_table->stats->table_id;
         table         = next_table;
         next_table    = NULL;
+
+#if OFP_FPM
+        /*
+         * FPM flows are always programmed in FPM_TABLE_ID (0x9 for now). Do
+         * a FPM before doing a traditional table lookup.
+         */
+        curr_table_id = pkt->table_id;
+        if (fpm_is_fpm_table(curr_table_id)) {
+            VLOG_INFO(LOG_MODULE, "Pkt received in FPM table, id %u.",
+                    curr_table_id);
+
+            fpm_id = fpm_get_fpm_id_from_pkt(pkt);
+            if (FPM_ALL_ID == fpm_id)
+                VLOG_ERR(LOG_MODULE, "Unable to fetch fpm id from pkt.");
+            else
+                VLOG_INFO(LOG_MODULE, "FPM id from pkt is %u.", fpm_id);
+#if 0
+        VLOG_INFO(LOG_MODULE, "L2 data: %s", pkt->buffer->l2);
+        VLOG_INFO(LOG_MODULE, "L3 data: %s", pkt->buffer->l3);
+        VLOG_INFO(LOG_MODULE, "L7 data: %s", pkt->buffer->l7);
+            if (fpm_do_lookup(fpm_id, pkt)) {
+                VLOG_INFO(LOG_MODULE, "FPM id %u match.");
+            } else {
+                VLOG_INFO(LOG_MODULE, "FPM id %u miss.");
+            }
+#endif
+        }
+#endif /* OFP_FPM */
 
         // EEDBEH: additional printout to debug table lookup
         if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {

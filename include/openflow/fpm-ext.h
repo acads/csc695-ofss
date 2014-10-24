@@ -15,8 +15,9 @@
 #include "openflow/openflow.h"
 
 /* Constants */
-#define OFP_EXP_FPM_ID  0x00ABCDEF  /* FPM experimenter ID          */
-#define FPM_MAX_LEN     31          /* FPM length of data to match  */
+#define OFP_EXP_FPM_ID  0x00ABCDEF  /* FPM experimenter ID                  */
+#define FPM_TABLE_ID    0x9         /* FPM flows are prog'd in this table   */
+#define FPM_MAX_LEN     31          /* FPM length of data to match          */
 #define FPM_MIN_ID      0
 #define FPM_MAX_ID      127
 #define FPM_ALL_ID      (FPM_MAX_ID + 1)

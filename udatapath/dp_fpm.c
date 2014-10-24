@@ -13,6 +13,7 @@
 #include "pipeline.h"
 #include "oflib/ofl.h"
 #include "oflib/ofl-messages.h"
+#include "oflib/oxm-match.h"
 #include "oflib/ofl-log.h"
 #include "util.h"
 #include "vlog.h"
@@ -25,6 +26,28 @@
 
 /* FPM table */
 struct of_fpm_table g_fpm_table;
+
+uint8_t
+fpm_get_fpm_id_from_pkt(struct packet *pkt)
+{
+    uint8_t                 fpm_id = FPM_ALL_ID;
+    uint32_t                md_header = OXM_OF_METADATA;
+    struct ofl_match_tlv    *tlv = NULL;
+
+    tlv = oxm_match_lookup(md_header, &(pkt->handle_std->match));
+    if (!tlv) {
+        return FPM_ALL_ID;
+    }
+
+    fpm_id = *((uint8_t *) tlv->value);
+    return fpm_id;
+}
+
+inline bool
+fpm_is_fpm_table(uint8_t table_id)
+{
+    return ((FPM_TABLE_ID == table_id) ? TRUE : FALSE);
+}
 
 static void
 fpm_init(void)
