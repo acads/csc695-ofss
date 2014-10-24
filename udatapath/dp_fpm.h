@@ -19,6 +19,10 @@
 #include "oflib-exp/ofl-exp-fpm.h"
 
 /* Function declarations */
+uint8_t
+fpm_get_fpm_id_from_pkt(struct packet *pkt);
+inline bool
+fpm_is_fpm_table(uint8_t table_id);
 ofl_err
 dp_fpm_handle_add(struct datapath *dp, struct ofl_exp_fpm_msg *exp_msg,
         const struct sender *sender UNUSED);
