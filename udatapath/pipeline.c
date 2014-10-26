@@ -129,6 +129,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 #ifdef OFP_FPM
     uint8_t fpm_id = FPM_ALL_ID;
     uint8_t curr_table_id = 0;
+    uint8_t *l7_data = NULL;
 #endif
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -170,14 +171,19 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                     curr_table_id);
 
             fpm_id = fpm_get_fpm_id_from_pkt(pkt);
-            if (FPM_ALL_ID == fpm_id)
+            if (FPM_ALL_ID == fpm_id) {
+                fpm_assert(0);
                 VLOG_ERR(LOG_MODULE, "Unable to fetch fpm id from pkt.");
-            else
+            } else {
                 VLOG_INFO(LOG_MODULE, "FPM id from pkt is %u.", fpm_id);
+            }
+
+            l7_data = fpm_get_l7_data(pkt);
+            if (l7_data)
+                VLOG_INFO(LOG_MODULE, "pipleine: l7 data found.");
+            else
+                VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
 #if 0
-        VLOG_INFO(LOG_MODULE, "L2 data: %s", pkt->buffer->l2);
-        VLOG_INFO(LOG_MODULE, "L3 data: %s", pkt->buffer->l3);
-        VLOG_INFO(LOG_MODULE, "L7 data: %s", pkt->buffer->l7);
             if (fpm_do_lookup(fpm_id, pkt)) {
                 VLOG_INFO(LOG_MODULE, "FPM id %u match.");
             } else {

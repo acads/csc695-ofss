@@ -49,6 +49,103 @@ fpm_is_fpm_table(uint8_t table_id)
     return ((FPM_TABLE_ID == table_id) ? TRUE : FALSE);
 }
 
+
+uint8_t *
+fpm_get_l7_data(struct packet *pkt)
+{
+    uint8_t             *l7 = NULL;
+    uint8_t             *tmp = NULL;
+    uint8_t             ip_proto = 0;
+    uint16_t            eth_type = 0;
+    struct eth_header   *eth_hdr = NULL;
+    struct ip_header    *ip_hdr = NULL;
+    struct ipv6_header  *ip6_hdr = NULL;
+    struct icmp_header  *icmp_hdr = NULL;
+    struct tcp_header   *tcp_hdr = NULL;
+    struct udp_header   *udp_hdr = NULL;
+
+    tmp = pkt->buffer->data;
+    if (!tmp)
+        goto error_exit;
+
+    eth_hdr = (struct eth_header *) tmp;
+    if (!eth_hdr) {
+        VLOG_WARN(LOG_MODULE, "Unable to fetch Ethernet header.");
+        goto error_exit;
+    }
+
+    tmp += sizeof(*eth_hdr);
+    eth_type = ntohs(eth_hdr->eth_type);
+    if (ETH_TYPE_IP == eth_type) {
+        ip_hdr = (struct ip_header *) tmp;
+        tmp += sizeof(*ip_hdr);
+        ip_proto = ip_hdr->ip_proto;
+    } else if (ETH_TYPE_IPV6 == eth_type) {
+        ip6_hdr = (struct ipv6_header *) tmp;
+        tmp += sizeof(*ip6_hdr);
+        ip_proto = ip6_hdr->ipv6_next_hd;
+    } else {
+        /* Only IP traffic is supported for FPM for now. */
+        VLOG_WARN(LOG_MODULE, "FPM only supports IP and IPv6 traffic.");
+        goto error_exit;
+    }
+
+    VLOG_INFO(LOG_MODULE, "eth_type: 0x%04x", eth_type);
+    VLOG_INFO(LOG_MODULE, "ip_porto: %02u", ip_proto);
+
+    switch (ip_proto)  {
+        case IP_TYPE_ICMP:
+            icmp_hdr = (struct icmp_header *) tmp;
+            VLOG_INFO(LOG_MODULE, "icmp_type: %02u", icmp_hdr->icmp_type);
+            VLOG_INFO(LOG_MODULE, "icmp_code: %02u", icmp_hdr->icmp_code);
+            tmp += sizeof(*icmp_hdr);
+            break;
+
+        case IP_TYPE_TCP:
+            tcp_hdr = (struct tcp_header *) tmp;
+            tmp += sizeof(*tcp_hdr);
+            VLOG_INFO(LOG_MODULE, "tcp_sport: %05u", ntohs(tcp_hdr->tcp_src));
+            VLOG_INFO(LOG_MODULE, "tcp_dport: %05u", ntohs(tcp_hdr->tcp_dst));
+            break;
+
+        case IP_TYPE_UDP:
+            udp_hdr = (struct udp_header *) tmp;
+            tmp += sizeof(*udp_hdr);
+            VLOG_INFO(LOG_MODULE, "udp_sport: %05u", ntohs(udp_hdr->udp_src));
+            VLOG_INFO(LOG_MODULE, "udp_dport: %05u", ntohs(udp_hdr->udp_dst));
+            break;
+
+        default:
+            VLOG_WARN(LOG_MODULE, "FPM only supports ICMP, TCP and UDP traffic.");
+    }
+
+    l7 = tmp;
+    return l7;
+
+error_exit:
+    return NULL;
+}
+
+#if 0
+uint8_t *
+fpm_get_l7_data(struct packet *pkt)
+{
+    uint8_t         *l7_data = NULL;
+    struct ofpbuf   *pkt_data = NULL;
+    struct flow     tmp_flow;
+
+    memset(&tmp_flow, 0, sizeof(tmp_flow));
+    pkt_data = pkt->buffer->data;
+
+    if (flow_extract(pkt_data, pkt->in_port, &tmp_flow)) {
+        l7_data = (uint8_t *) pkt->buffer->l7;
+        VLOG_INFO(LOG_MODULE, "fpm: l2 data found.");
+    }
+
+    return l7_data;
+}
+#endif
+
 static void
 fpm_init(void)
 {
@@ -256,8 +353,6 @@ dp_fpm_handle_stats(struct datapath *dp,
         }
         VLOG_INFO(LOG_MODULE, "FPM stats sent for all available IDs.");
     } else {
-        uint8_t *tmp;
-
         VLOG_INFO(LOG_MODULE, "FPM stats request received for id %u.", id);
         if (!fpm_is_id_present(id)) {
             VLOG_ERR(LOG_MODULE, "FPM id %u has not been configured.", id);
