@@ -96,14 +96,14 @@ fpm_get_l7_data(struct packet *pkt)
     switch (ip_proto)  {
         case IP_TYPE_ICMP:
             icmp_hdr = (struct icmp_header *) tmp;
+            tmp += sizeof(*icmp_hdr);
             VLOG_INFO(LOG_MODULE, "icmp_type: %02u", icmp_hdr->icmp_type);
             VLOG_INFO(LOG_MODULE, "icmp_code: %02u", icmp_hdr->icmp_code);
-            tmp += sizeof(*icmp_hdr);
             break;
 
         case IP_TYPE_TCP:
             tcp_hdr = (struct tcp_header *) tmp;
-            tmp += sizeof(*tcp_hdr);
+            tmp += (TCP_OFFSET(tcp_hdr->tcp_ctl) * 4);
             VLOG_INFO(LOG_MODULE, "tcp_sport: %05u", ntohs(tcp_hdr->tcp_src));
             VLOG_INFO(LOG_MODULE, "tcp_dport: %05u", ntohs(tcp_hdr->tcp_dst));
             break;
@@ -125,26 +125,6 @@ fpm_get_l7_data(struct packet *pkt)
 error_exit:
     return NULL;
 }
-
-#if 0
-uint8_t *
-fpm_get_l7_data(struct packet *pkt)
-{
-    uint8_t         *l7_data = NULL;
-    struct ofpbuf   *pkt_data = NULL;
-    struct flow     tmp_flow;
-
-    memset(&tmp_flow, 0, sizeof(tmp_flow));
-    pkt_data = pkt->buffer->data;
-
-    if (flow_extract(pkt_data, pkt->in_port, &tmp_flow)) {
-        l7_data = (uint8_t *) pkt->buffer->l7;
-        VLOG_INFO(LOG_MODULE, "fpm: l2 data found.");
-    }
-
-    return l7_data;
-}
-#endif
 
 static void
 fpm_init(void)

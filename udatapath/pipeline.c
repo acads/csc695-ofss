@@ -127,6 +127,7 @@ void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
 #ifdef OFP_FPM
+    char    match_payload[FPM_MAX_LEN] = "";
     uint8_t fpm_id = FPM_ALL_ID;
     uint8_t curr_table_id = 0;
     uint8_t *l7_data = NULL;
@@ -179,10 +180,13 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             }
 
             l7_data = fpm_get_l7_data(pkt);
-            if (l7_data)
+            if (l7_data) {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data found.");
-            else
+                memcpy(&match_payload, l7_data, FPM_MAX_LEN);
+                VLOG_INFO(LOG_MODULE, "Payload at offset: %s", match_payload);
+            } else {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
+            }
 #if 0
             if (fpm_do_lookup(fpm_id, pkt)) {
                 VLOG_INFO(LOG_MODULE, "FPM id %u match.");
