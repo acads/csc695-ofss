@@ -27,6 +27,71 @@
 /* FPM table */
 struct of_fpm_table g_fpm_table;
 
+static void
+fpm_init(void)
+{
+    uint16_t    i = 0;
+
+    for (i = 0; i < FPM_MAX_ID + 1; ++i)
+        g_fpm_table.entries[i] = NULL;
+    memset(&g_fpm_table.nref, 0, sizeof(g_fpm_table.nref));
+    g_fpm_table.count = 0;
+
+    return;
+}
+
+static inline bool
+fpm_is_id_present(uint8_t id)
+{
+    return ((g_fpm_table.entries[id]) ? TRUE : FALSE);
+}
+
+static inline struct of_fpm_entry *
+fpm_get_entry(uint8_t id)
+{
+    return ((fpm_is_id_present(id)) ? (g_fpm_table.entries[id]) : NULL);
+}
+
+static inline bool
+fpm_get_id_ref_count(uint8_t id)
+{
+    return (g_fpm_table.nref[id]);
+}
+
+static inline void
+fpm_increment_id_ref_count(uint8_t id)
+{
+    g_fpm_table.nref[id] += 1;
+    return;
+}
+
+static inline void
+fpm_decrement_id_ref_count(uint8_t id)
+{
+    if (g_fpm_table.nref[id])
+        g_fpm_table.nref[id] -= 1;
+    return;
+}
+
+static inline uint32_t
+fpm_get_count(void)
+{
+    return g_fpm_table.count;
+}
+
+static inline void
+fpm_increment_count(void)
+{
+    g_fpm_table.count += 1;
+}
+
+static inline void
+fpm_decrement_count(void)
+{
+    if (g_fpm_table.count)
+        g_fpm_table.count -= 1;
+}
+
 uint8_t
 fpm_get_fpm_id_from_pkt(struct packet *pkt)
 {
@@ -126,63 +191,26 @@ error_exit:
     return NULL;
 }
 
-static void
-fpm_init(void)
+bool
+fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
 {
-    uint16_t    i = 0;
+    struct of_fpm_entry *e = NULL;
 
-    for (i = 0; i < FPM_MAX_ID + 1; ++i)
-        g_fpm_table.entries[i] = NULL;
-    memset(&g_fpm_table.nref, 0, sizeof(g_fpm_table.nref));
-    g_fpm_table.count = 0;
+    e = fpm_get_entry(fpm_id);
+    if (!e)
+        return FALSE;
+#if 0
+    if (strlen(data) < e->offset)
+        return FALSE;
 
-    return;
-}
+    if (strlen(data) < e->len)
+        return FALSE;
+#endif
 
-static inline bool
-fpm_is_id_present(uint8_t id)
-{
-    return ((g_fpm_table.entries[id]) ? TRUE : FALSE);
-}
-
-static inline bool
-fpm_get_id_ref_count(uint8_t id)
-{
-    return (g_fpm_table.nref[id]);
-}
-
-static inline void
-fpm_increment_id_ref_count(uint8_t id)
-{
-    g_fpm_table.nref[id] += 1;
-    return;
-}
-
-static inline void
-fpm_decrement_id_ref_count(uint8_t id)
-{
-    if (g_fpm_table.nref[id])
-        g_fpm_table.nref[id] -= 1;
-    return;
-}
-
-static inline uint32_t
-fpm_get_count(void)
-{
-    return g_fpm_table.count;
-}
-
-static inline void
-fpm_increment_count(void)
-{
-    g_fpm_table.count += 1;
-}
-
-static inline void
-fpm_decrement_count(void)
-{
-    if (g_fpm_table.count)
-        g_fpm_table.count -= 1;
+    if (memcmp((data + e->offset), e->match, e->len))
+        return FALSE;
+    else
+        return TRUE;
 }
 
 ofl_err
@@ -207,7 +235,10 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
     }
 
     loc_entry = (struct of_fpm_entry *) calloc(1, sizeof(*loc_entry));
-    memcpy(loc_entry, in_entry, sizeof(*loc_entry));
+    loc_entry->id = in_entry->id;
+    loc_entry->offset = in_entry->offset;
+    loc_entry->len = in_entry->len;
+    memcpy(loc_entry->match, in_entry->match, in_entry->len);
 
     g_fpm_table.entries[loc_entry->id] = loc_entry;
     fpm_increment_count();

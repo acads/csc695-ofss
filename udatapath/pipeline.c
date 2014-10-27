@@ -168,9 +168,11 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
          */
         curr_table_id = pkt->table_id;
         if (fpm_is_fpm_table(curr_table_id)) {
+            bool rc = FALSE;
             VLOG_INFO(LOG_MODULE, "Pkt received in FPM table, id %u.",
                     curr_table_id);
 
+            /* Fetche the FPM id from pkt metadata */
             fpm_id = fpm_get_fpm_id_from_pkt(pkt);
             if (FPM_ALL_ID == fpm_id) {
                 fpm_assert(0);
@@ -179,6 +181,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 VLOG_INFO(LOG_MODULE, "FPM id from pkt is %u.", fpm_id);
             }
 
+            /* Fech a ptr to application payload */
             l7_data = fpm_get_l7_data(pkt);
             if (l7_data) {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data found.");
@@ -187,13 +190,15 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             } else {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
             }
-#if 0
-            if (fpm_do_lookup(fpm_id, pkt)) {
-                VLOG_INFO(LOG_MODULE, "FPM id %u match.");
+
+            /* Do a FPM on the pkt */
+            rc = fpm_do_lookup(fpm_id, (uint8_t *) l7_data);
+            VLOG_INFO(LOG_MODULE, "rc = %u", rc);
+            if (fpm_do_lookup(fpm_id, (uint8_t *) l7_data)) {
+                VLOG_INFO(LOG_MODULE, "FPM id %u match.", fpm_id);
             } else {
-                VLOG_INFO(LOG_MODULE, "FPM id %u miss.");
+                VLOG_INFO(LOG_MODULE, "FPM id %u miss.", fpm_id);
             }
-#endif
         }
 #endif /* OFP_FPM */
 
