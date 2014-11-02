@@ -39,8 +39,6 @@ struct ofl_exp_fpm_stats_reply {
 };
 
 /* Function declarations */
-inline bool
-fpm_is_id_valid(uint8_t id);
 int
 ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf, 
                 size_t *buf_len);

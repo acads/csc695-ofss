@@ -22,12 +22,6 @@
 #define LOG_MODULE ofl_exp_fpm
 OFL_LOG_INIT(LOG_MODULE)
 
-inline bool
-fpm_is_id_valid(uint8_t id)
-{
-    return ((id >= FPM_MIN_ID) && (id <=FPM_MAX_ID));
-}
-
 int                 
 ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
                 size_t *buf_len)

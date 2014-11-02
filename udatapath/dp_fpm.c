@@ -40,6 +40,12 @@ fpm_init(void)
     return;
 }
 
+inline bool
+fpm_is_id_valid(uint8_t id)
+{
+    return ((id >= FPM_MIN_ID) && (id <= FPM_MAX_ID) ? TRUE : FALSE);
+}
+
 static inline bool
 fpm_is_id_present(uint8_t id)
 {
@@ -52,20 +58,20 @@ fpm_get_entry(uint8_t id)
     return ((fpm_is_id_present(id)) ? (g_fpm_table.entries[id]) : NULL);
 }
 
-static inline bool
+static inline uint8_t
 fpm_get_id_ref_count(uint8_t id)
 {
     return (g_fpm_table.nref[id]);
 }
 
-static inline void
+inline void
 fpm_increment_id_ref_count(uint8_t id)
 {
     g_fpm_table.nref[id] += 1;
     return;
 }
 
-static inline void
+inline void
 fpm_decrement_id_ref_count(uint8_t id)
 {
     if (g_fpm_table.nref[id])
@@ -90,6 +96,22 @@ fpm_decrement_count(void)
 {
     if (g_fpm_table.count)
         g_fpm_table.count -= 1;
+}
+
+uint8_t
+fpm_get_fpm_id_from_fmod(struct ofl_msg_flow_mod *mod)
+{
+    uint8_t                 fpm_id = FPM_ALL_ID;
+    uint32_t                md_header = OXM_OF_METADATA;
+    struct ofl_match_tlv    *tlv = NULL;
+
+    tlv = oxm_match_lookup(md_header, (struct ofl_match *) (mod->match));
+    if (!tlv) {
+        return FPM_ALL_ID;
+    }
+
+    fpm_id = *((uint8_t *) tlv->value);
+    return fpm_id;
 }
 
 uint8_t

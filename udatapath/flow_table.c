@@ -39,6 +39,9 @@
 #include "time.h"
 #include "dp_capabilities.h"
 //#include "packet_handle_std.h"
+#ifdef OFP_FPM
+#include "dp_fpm.h"
+#endif /* OFP_FPM */
 
 #include "vlog.h"
 #define LOG_MODULE VLM_flow_t
@@ -141,6 +144,26 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
     table->stats->active_count++;
 
     new_entry = flow_entry_create(table->dp, table, mod);
+#ifdef OFP_FPM
+    /*
+     * Check for FPM IDs in case of FPM table and update the nref of
+     * the FPM id in the global FPM table.
+     */
+    {
+        uint8_t fpm_id = FPM_ALL_ID;
+
+        if (fpm_is_fpm_table(table->stats->table_id)) {
+
+            fpm_id = fpm_get_fpm_id_from_fmod(mod);
+            if (fpm_is_id_valid(fpm_id)) {
+                fpm_increment_id_ref_count(fpm_id);
+            } else {
+                VLOG_WARN_RL(LOG_MODULE, &rl, "Invalid FPM id %u in FPM table.",
+                        fpm_id);
+            }
+        }
+    }
+#endif /* OFP_FPM */
     *match_kept = true;
     *insts_kept = true;
 
@@ -176,6 +199,25 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
         if ((mod->out_port == OFPP_ANY || flow_entry_has_out_port(entry, mod->out_port)) &&
             (mod->out_group == OFPG_ANY || flow_entry_has_out_group(entry, mod->out_group)) &&
             flow_entry_matches(entry, mod, strict, true/*check_cookie*/)) {
+#ifdef OFP_FPM
+                /*
+                 * Check for FPM IDs in case of FPM table and update the nref of
+                 * the FPM id in the global FPM table.
+                 */
+                {
+                    uint8_t fpm_id = FPM_ALL_ID;
+
+                    if (fpm_is_fpm_table(table->stats->table_id)) {
+                        fpm_id = fpm_get_fpm_id_from_fmod(mod);
+                        if (fpm_is_id_valid(fpm_id)) {
+                            fpm_decrement_id_ref_count(fpm_id);
+                        } else {
+                            VLOG_WARN_RL(LOG_MODULE, &rl,
+                                    "Invalid FPM id %u in FPM table.", fpm_id);
+                        }
+                    }
+                }
+#endif /* OFP_FPM */
              flow_entry_remove(entry, OFPRR_DELETE);
         }
     }

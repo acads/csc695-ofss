@@ -172,7 +172,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             VLOG_INFO(LOG_MODULE, "Pkt received in FPM table, id %u.",
                     curr_table_id);
 
-            /* Fetche the FPM id from pkt metadata */
+            /* Fetch the FPM id from pkt metadata */
             fpm_id = fpm_get_fpm_id_from_pkt(pkt);
             if (FPM_ALL_ID == fpm_id) {
                 fpm_assert(0);
