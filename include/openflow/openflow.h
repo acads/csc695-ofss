@@ -1695,7 +1695,8 @@ enum ofp_queue_op_failed_code {
 enum ofp_fpm_op_failed_code {
     OFPFPMC_BAD_ID = 0,     /* Invalid ID or ID doesn't exist   */
     OFFFPMC_ID_EXISTS = 1,  /* Given ID exists already          */
-    OFFFPMC_ID_ACTIVE = 2,  /* Given ID is being used by flows  */
+    OFFFPMC_BAD_PARAMS = 2,
+    OFFFPMC_ID_ACTIVE = 3,  /* Given ID is being used by flows  */
 };
 #endif /* OFP_FPM */
 

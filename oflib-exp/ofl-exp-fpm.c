@@ -53,6 +53,7 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
             loc_entry->id = exp_msg->fpm_entry->id;
             loc_entry->offset = htonl(exp_msg->fpm_entry->offset);
+            loc_entry->depth = htonl(exp_msg->fpm_entry->depth);
             loc_entry->len = htonl(exp_msg->fpm_entry->len);
             memcpy(loc_entry->match, exp_msg->fpm_entry->match,
                     FPM_MAX_LEN + 1);
@@ -156,6 +157,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             exp_msg->fpm_entry = exp_entry;
             exp_entry->id = in_msg->fpm_entry.id;
             exp_entry->offset = ntohl(in_msg->fpm_entry.offset);
+            exp_entry->depth = ntohl(in_msg->fpm_entry.depth);
             exp_entry->len = ntohl(in_msg->fpm_entry.len);
             memcpy(exp_entry->match, in_msg->fpm_entry.match,
                     FPM_MAX_LEN + 1);
@@ -297,8 +299,10 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
 
     switch (exp_hdr->type) {
         case OFP_FPM_ADD:
-            fprintf(stream, "-fpm-add {id=%u, offset=%u, len=%u, match=%s}",
-                    entry->id, entry->offset, entry->len, entry->match);
+            fprintf(stream,
+                    "-fpm-add {id=%u, offset=%u, depth=%u, len=%u, match=%s}",
+                    entry->id, entry->offset, entry->depth, entry->len,
+                    entry->match);
             break;
 
         case OFP_FPM_DEL:

@@ -54,6 +54,7 @@ OFP_ASSERT(sizeof(struct of_fpm_header) % 4 == 0);
 struct of_fpm_entry {
     uint8_t     id;                     /* FPM ID           */
     uint32_t    offset;                 /* start offset     */
+    uint32_t    depth;                  /* end offset       */
     uint32_t    len;                    /* bytes to match   */
     char        match[FPM_MAX_LEN + 1]; /* what to match?   */
 };
