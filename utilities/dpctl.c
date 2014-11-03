@@ -846,21 +846,15 @@ fpm_add(struct vconn *vconn, int argc UNUSED, char *argv[])
     msg.fpm_entry = entry;
     entry->id = atoi(argv[0]);
     entry->offset = atoi(argv[1]);
-    entry->len = atoi(argv[2]);
-    if (strlen(argv[3]) <= FPM_MAX_LEN) {
-        memcpy(entry->match, argv[3], FPM_MAX_LEN);
+    entry->depth = atoi(argv[2]);
+    entry->len = atoi(argv[3]);
+    if (strlen(argv[4]) <= FPM_MAX_LEN) {
+        memcpy(entry->match, argv[4], FPM_MAX_LEN);
     } else {
         ofp_fatal(0,
             "Length of match string is greater than permissable length of %u.",
             FPM_MAX_LEN);
     }
-
-#if 0
-    printf("exp_id 0x%x, id %u, offset %d, len %d, match %s\n",
-            msg.header.header.experimenter_id, msg.fpm_entry->id,
-            msg.fpm_entry->offset, msg.fpm_entry->len,
-            msg.fpm_entry->match);
-#endif
 
     dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
     return;
@@ -1053,7 +1047,7 @@ static struct command all_commands[] = {
     {"set-table-match", 0, 2, set_table_features_match},
 
 #ifdef OFP_FPM
-    {"fpm-add", 4, 4, fpm_add},
+    {"fpm-add", 5, 5, fpm_add},
     {"fpm-del", 1, 1, fpm_del},
     {"fpm-stats", 0, 1, fpm_stats},
     {"fpm-logs", 0, 1, fpm_logs},

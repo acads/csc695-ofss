@@ -216,23 +216,18 @@ error_exit:
 bool
 fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
 {
+    char                haystack[FPM_MAX_LEN + 1] = "";
     struct of_fpm_entry *e = NULL;
 
     e = fpm_get_entry(fpm_id);
     if (!e)
         return FALSE;
-#if 0
-    if (strlen(data) < e->offset)
-        return FALSE;
 
-    if (strlen(data) < e->len)
-        return FALSE;
-#endif
-
-    if (memcmp((data + e->offset), e->match, e->len))
-        return FALSE;
-    else
+    memcpy(haystack, data + e->offset, e->depth);
+    if (strstr(haystack, e->match))
         return TRUE;
+
+    return FALSE;
 }
 
 ofl_err
@@ -259,15 +254,31 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
     loc_entry = (struct of_fpm_entry *) calloc(1, sizeof(*loc_entry));
     loc_entry->id = in_entry->id;
     loc_entry->offset = in_entry->offset;
+    loc_entry->depth = in_entry->depth;
     loc_entry->len = in_entry->len;
     memcpy(loc_entry->match, in_entry->match, in_entry->len);
+
+    if (in_entry->len > FPM_MAX_LEN) {
+        VLOG_ERR(LOG_MODULE, "Bad length %u for FPM id %u",
+                in_entry->len, in_entry->id);
+        err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_BAD_PARAMS);
+        goto error_exit;
+    }
+
+    if (in_entry->offset + in_entry->depth < in_entry->len) {
+        VLOG_ERR(LOG_MODULE, "Len %u greater than offset + depth (%u + %u) for FPM id %u.",
+                in_entry->len, in_entry->offset, in_entry->depth, in_entry->id);
+        err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_BAD_PARAMS);
+        goto error_exit;
+    }
 
     g_fpm_table.entries[loc_entry->id] = loc_entry;
     fpm_increment_count();
 
     entry = (struct of_fpm_entry *) g_fpm_table.entries[loc_entry->id];
-    VLOG_INFO(LOG_MODULE, "Configured FPM id %u, offset %u, len %u, match %s",
-            entry->id, entry->offset, entry->len, entry->match);
+    VLOG_INFO(LOG_MODULE,
+            "Configured FPM id %u, offset %u, depth %u, len %u, match %s",
+            entry->id, entry->offset, entry->depth, entry->len, entry->match);
 
     return err_code;
 
@@ -342,8 +353,9 @@ dp_fpm_handle_logs(struct datapath *dp UNUSED,
 
         e = (struct of_fpm_entry *) g_fpm_table.entries[id];
         VLOG_INFO(LOG_MODULE,
-            "fpm-stats: id %u, offset %u, len %u, match \"%s\", nref %u",
-            e->id, e->offset, e->len, e->match, fpm_get_id_ref_count(e->id));
+            "fpm-stats: id %u, offset %u, depth %u, len %u, match \"%s\", nref %u",
+            e->id, e->offset, e->depth, e->len, e->match,
+            fpm_get_id_ref_count(e->id));
     }
 
     return err_code;
