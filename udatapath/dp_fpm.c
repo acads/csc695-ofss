@@ -231,18 +231,21 @@ error_exit:
 bool
 fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
 {
-    char                haystack[FPM_MAX_LEN + 1] = "";
-    struct of_fpm_entry *e = NULL;
+    char                        haystack[FPM_MAX_LEN + 1] = "";
+    struct fpm                  *fpm_data = NULL;
+    struct of_fpm_table_entry   *e = NULL;
 
-#if 0
-    e = fpm_get_entry(fpm_id);
+    e = fpm_get_table_entry(fpm_id);
     if (!e)
         return FALSE;
-#endif
 
-    memcpy(haystack, data + e->offset, e->depth);
-    if (strstr(haystack, e->match))
-        return TRUE;
+    fpm_data = e->fpm_data;
+    while (fpm_data) {
+        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
+        if (strstr(haystack, fpm_data->match))
+            return TRUE;
+        fpm_data = fpm_data->next;
+    }
 
     return FALSE;
 }
