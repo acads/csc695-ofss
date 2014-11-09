@@ -21,6 +21,7 @@
 #define FPM_MIN_ID      0
 #define FPM_MAX_ID      127
 #define FPM_ALL_ID      (FPM_MAX_ID + 1)
+#define FPM_MAX_MATCH   8
 #ifndef TRUE
 #define TRUE            1
 #endif /* TRUE */
@@ -80,11 +81,28 @@ struct of_fpm_stats_request {
     uint8_t                 id;
 };
 
+struct fpm {
+    uint32_t    offset;
+    uint32_t    depth;
+    uint32_t    len;
+    char        match[FPM_MAX_LEN + 1];
+    struct fpm  *next;
+};
+
+/* FPM entry in a table */
+struct of_fpm_table_entry {
+    uint8_t     id;
+    uint32_t    nref;
+    uint32_t    nfpm;
+    struct fpm  *fpm_data;
+};
+
 /* FPM table */
 struct of_fpm_table {
-    struct of_fpm_entry *entries[FPM_MAX_ID + 1];
-    uint32_t            nref[FPM_MAX_ID + 1];
-    uint8_t             count;
+    //struct of_fpm_entry *entries[FPM_MAX_ID + 1];
+    struct of_fpm_table_entry   *entries[FPM_MAX_ID + 1];
+    uint32_t                    nref[FPM_MAX_ID + 1];
+    uint8_t                     count;
 };
 #endif /* FPM_EXT_H */
 
