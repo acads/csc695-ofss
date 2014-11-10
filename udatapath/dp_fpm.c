@@ -303,7 +303,7 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
     memcpy(loc_data->match, in_entry->match, in_entry->len);
 
     /* 
-       Place the new match at the entry's head and update the 
+     * Place the new match at the entry's head and update the
      * global FPM table if the entry is being added for the 1st time.
      */
     loc_entry->nfpm += 1;
@@ -367,6 +367,7 @@ dp_fpm_handle_del(struct datapath *dp UNUSED,
     }
 
     loc_entry = fpm_get_table_entry(in_entry->id);
+
     /* First delete all configured matches for the given id. */
     while (loc_entry->fpm_data && loc_entry->nfpm) {
         tmp_fpm_data = loc_entry->fpm_data;

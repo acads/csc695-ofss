@@ -168,7 +168,6 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
          */
         curr_table_id = pkt->table_id;
         if (fpm_is_fpm_table(curr_table_id)) {
-            bool rc = FALSE;
             VLOG_INFO(LOG_MODULE, "Pkt received in FPM table, id %u.",
                     curr_table_id);
 
@@ -192,12 +191,23 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             }
 
             /* Do a FPM on the pkt */
-            rc = fpm_do_lookup(fpm_id, (uint8_t *) l7_data);
-            VLOG_INFO(LOG_MODULE, "rc = %u", rc);
             if (fpm_do_lookup(fpm_id, (uint8_t *) l7_data)) {
                 VLOG_INFO(LOG_MODULE, "FPM id %u match.", fpm_id);
             } else {
+                struct ofl_match_tlv *match_tlv_iter = NULL;
+
+                /*
+                 * In case of a miss, set the metadata to fpm_id + 1, so
+                 * that the pkt matches the complementary FP< rule.
+                 */
+                HMAP_FOR_EACH_WITH_HASH(match_tlv_iter, struct ofl_match_tlv,
+                    hmap_node, hash_int(OXM_OF_METADATA, 0),
+                    &(pkt->handle_std->match.match_fields)) {
+                    uint64_t    *metadata = (uint64_t *) match_tlv_iter->value;
+                    *metadata = fpm_id + 1;
+                }
                 VLOG_INFO(LOG_MODULE, "FPM id %u miss.", fpm_id);
+                VLOG_INFO(LOG_MODULE, "FPM id rewritten to %u.", fpm_id + 1);
             }
         }
 #endif /* OFP_FPM */

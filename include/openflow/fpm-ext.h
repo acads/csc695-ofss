@@ -99,7 +99,6 @@ struct of_fpm_table_entry {
 
 /* FPM table */
 struct of_fpm_table {
-    //struct of_fpm_entry *entries[FPM_MAX_ID + 1];
     struct of_fpm_table_entry   *entries[FPM_MAX_ID + 1];
     uint32_t                    nref[FPM_MAX_ID + 1];
     uint8_t                     count;
