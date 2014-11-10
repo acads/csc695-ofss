@@ -86,6 +86,7 @@ struct fpm {
     uint32_t    depth;
     uint32_t    len;
     char        match[FPM_MAX_LEN + 1];
+    uint64_t    npkts;
     struct fpm  *next;
 };
 

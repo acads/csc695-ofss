@@ -242,8 +242,10 @@ fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
     fpm_data = e->fpm_data;
     while (fpm_data) {
         memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
-        if (strstr(haystack, fpm_data->match))
+        if (strstr(haystack, fpm_data->match)) {
+            fpm_data->npkts += 1;
             return TRUE;
+        }
         fpm_data = fpm_data->next;
     }
 
@@ -429,9 +431,9 @@ dp_fpm_handle_logs(struct datapath *dp UNUSED,
         loc_data = loc_entry->fpm_data;
         while (loc_data) {
             VLOG_INFO(LOG_MODULE, 
-                "   offset %u, depth %u, len %u, match \"%s\"",
+                "   offset %u, depth %u, len %u, match \"%s\", npkts %u",
                 loc_data->offset, loc_data->depth, 
-                loc_data->len, loc_data->match);
+                loc_data->len, loc_data->match, loc_data->npkts);
             loc_data = loc_data->next;
         }
     }
