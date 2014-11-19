@@ -161,24 +161,10 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
         table         = next_table;
         next_table    = NULL;
 
-#if OFP_FPM
-        /*
-         * FPM flows are always programmed in FPM_TABLE_ID (0x9 for now). Do
-         * a FPM before doing a traditional table lookup.
-         */
+#ifdef OFP_FPM
         curr_table_id = pkt->table_id;
         if (fpm_is_fpm_table(curr_table_id)) {
-            VLOG_INFO(LOG_MODULE, "Pkt received in FPM table, id %u.",
-                    curr_table_id);
-
-            /* Fetch the FPM id from pkt metadata */
-            fpm_id = fpm_get_fpm_id_from_pkt(pkt);
-            if (FPM_ALL_ID == fpm_id) {
-                fpm_assert(0);
-                VLOG_ERR(LOG_MODULE, "Unable to fetch fpm id from pkt.");
-            } else {
-                VLOG_INFO(LOG_MODULE, "FPM id from pkt is %u.", fpm_id);
-            }
+            bool    match = FALSE;
 
             /* Fech a ptr to application payload */
             l7_data = fpm_get_l7_data(pkt);
@@ -190,25 +176,22 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
             }
 
-            /* Do a FPM on the pkt */
-            if (fpm_do_lookup(fpm_id, (uint8_t *) l7_data)) {
-                VLOG_INFO(LOG_MODULE, "FPM id %u match.", fpm_id);
+            /* Call appropriate regular/exact match handlers based on the
+             * availability of FPM id on the packet.
+             */
+            fpm_id = fpm_get_fpm_id_from_pkt(pkt);
+            if ((FPM_ALL_ID == fpm_id) || (!fpm_id)) {
+                VLOG_INFO(LOG_MODULE, "Regular FPM.");
+                match = fpm_handle_regular_match(l7_data);
             } else {
-                struct ofl_match_tlv *match_tlv_iter = NULL;
-
-                /*
-                 * In case of a miss, set the metadata to fpm_id + 1, so
-                 * that the pkt matches the complementary FP< rule.
-                 */
-                HMAP_FOR_EACH_WITH_HASH(match_tlv_iter, struct ofl_match_tlv,
-                    hmap_node, hash_int(OXM_OF_METADATA, 0),
-                    &(pkt->handle_std->match.match_fields)) {
-                    uint64_t    *metadata = (uint64_t *) match_tlv_iter->value;
-                    *metadata = fpm_id + 1;
-                }
-                VLOG_INFO(LOG_MODULE, "FPM id %u miss.", fpm_id);
-                VLOG_INFO(LOG_MODULE, "FPM id rewritten to %u.", fpm_id + 1);
+                VLOG_INFO(LOG_MODULE, "Exact FPM for id %u.", fpm_id);
+                match = fpm_handle_exact_match(fpm_id, l7_data);
             }
+
+            if (match)
+                VLOG_INFO(LOG_MODULE, "FPM match.");
+            else
+                VLOG_INFO(LOG_MODULE, "FPM miss.");
         }
 #endif /* OFP_FPM */
 
