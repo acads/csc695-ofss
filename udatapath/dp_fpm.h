@@ -21,27 +21,43 @@
 /* Function declarations */
 inline bool
 fpm_is_id_valid(uint8_t id);
+
 inline void
 fpm_increment_id_ref_count(uint8_t id);
+
 inline void
 fpm_decrement_id_ref_count(uint8_t id);
+
 uint8_t
 fpm_get_fpm_id_from_fmod(struct ofl_msg_flow_mod *mod);
+
 uint8_t
 fpm_get_fpm_id_from_pkt(struct packet *pkt);
+
 inline bool
 fpm_is_fpm_table(uint8_t table_id);
+
 uint8_t *
 fpm_get_l7_data(struct packet *pkt);
+
+bool
+fpm_handle_regular_match(uint8_t *data);
+
+bool
+fpm_handle_exact_match(uint8_t id, uint8_t *data);
+
 ofl_err
 dp_fpm_handle_add(struct datapath *dp, struct ofl_exp_fpm_msg *exp_msg,
         const struct sender *sender UNUSED);
+
 ofl_err
 dp_fpm_handle_del(struct datapath *dp UNUSED, struct ofl_exp_fpm_msg *exp_msg,
         const struct sender *sender UNUSED);
+
 ofl_err
 dp_fpm_handle_logs(struct datapath *dp UNUSED, struct ofl_exp_fpm_msg *exp_msg,
         const struct sender *sender UNUSED);
+
 ofl_err
 dp_fpm_handle_stats(struct datapath *dp,
         struct ofl_msg_multipart_request_fpm *_msg,

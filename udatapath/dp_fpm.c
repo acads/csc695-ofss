@@ -151,6 +151,30 @@ fpm_is_fpm_table(uint8_t table_id)
     return ((FPM_TABLE_ID == table_id) ? TRUE : FALSE);
 }
 
+static inline bool
+fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
+{
+    char                        haystack[FPM_MAX_LEN + 1] = "";
+    struct fpm                  *fpm_data = NULL;
+    struct of_fpm_table_entry   *e = NULL;
+
+    e = fpm_get_table_entry(fpm_id);
+    if (!e)
+        return FALSE;
+
+    fpm_data = e->fpm_data;
+    while (fpm_data) {
+        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
+        if (strstr(haystack, fpm_data->match)) {
+            fpm_data->npkts += 1;
+            return TRUE;
+        }
+        fpm_data = fpm_data->next;
+    }
+
+    return FALSE;
+}
+
 
 uint8_t *
 fpm_get_l7_data(struct packet *pkt)
@@ -229,25 +253,22 @@ error_exit:
 }
 
 bool
-fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
+fpm_handle_exact_match(uint8_t id, uint8_t *data)
 {
-    char                        haystack[FPM_MAX_LEN + 1] = "";
-    struct fpm                  *fpm_data = NULL;
-    struct of_fpm_table_entry   *e = NULL;
+    if (fpm_do_lookup(id, data))
+        return TRUE;
 
-    e = fpm_get_table_entry(fpm_id);
-    if (!e)
-        return FALSE;
+    return FALSE;
+}
 
-    fpm_data = e->fpm_data;
-    while (fpm_data) {
-        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
-        if (strstr(haystack, fpm_data->match)) {
-            fpm_data->npkts += 1;
+bool
+fpm_handle_regular_match(uint8_t *data)
+{
+    uint8_t id = 0;
+
+    for (id = 0; (id <= FPM_MAX_ID); ++id)
+        if (fpm_is_id_present(id) && fpm_do_lookup(id, data))
             return TRUE;
-        }
-        fpm_data = fpm_data->next;
-    }
 
     return FALSE;
 }
