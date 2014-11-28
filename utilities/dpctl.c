@@ -855,6 +855,10 @@ fpm_add(struct vconn *vconn, int argc UNUSED, char *argv[])
             "Length of match string is greater than permissable length of %u.",
             FPM_MAX_LEN);
     }
+    if (atoi(argv[5]))
+        entry->and_match = TRUE;
+    else
+        entry->and_match = FALSE;
 
     dpctl_send_and_print(vconn, (struct ofl_msg_header *) &msg);
     return;
@@ -1047,7 +1051,7 @@ static struct command all_commands[] = {
     {"set-table-match", 0, 2, set_table_features_match},
 
 #ifdef OFP_FPM
-    {"fpm-add", 5, 5, fpm_add},
+    {"fpm-add", 6, 6, fpm_add},
     {"fpm-del", 1, 1, fpm_del},
     {"fpm-stats", 0, 1, fpm_stats},
     {"fpm-logs", 0, 1, fpm_logs},

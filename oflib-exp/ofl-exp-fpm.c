@@ -57,6 +57,7 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             loc_entry->len = htonl(exp_msg->fpm_entry->len);
             memcpy(loc_entry->match, exp_msg->fpm_entry->match,
                     FPM_MAX_LEN + 1);
+            loc_entry->and_match = exp_msg->fpm_entry->and_match;
 
             break;
         }
@@ -161,6 +162,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             exp_entry->len = ntohl(in_msg->fpm_entry.len);
             memcpy(exp_entry->match, in_msg->fpm_entry.match,
                     FPM_MAX_LEN + 1);
+            exp_entry->and_match = in_msg->fpm_entry.and_match;
 
             *msg = (struct ofl_msg_experimenter *) exp_msg;
             return 0;

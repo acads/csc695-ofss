@@ -16,7 +16,7 @@
 
 /* Constants */
 #define OFP_EXP_FPM_ID  0x00ABCDEF  /* FPM experimenter ID                  */
-#define FPM_TABLE_ID    0x9         /* FPM flows are prog'd in this table   */
+#define FPM_TABLE_ID    0x2         /* FPM flows are prog'd in this table   */
 #define FPM_MAX_LEN     31          /* FPM length of data to match          */
 #define FPM_MIN_ID      0
 #define FPM_MAX_ID      127
@@ -58,6 +58,7 @@ struct of_fpm_entry {
     uint32_t    depth;                  /* end offset       */
     uint32_t    len;                    /* bytes to match   */
     char        match[FPM_MAX_LEN + 1]; /* what to match?   */
+    bool        and_match;              /* AND style match? */
 };
 
 struct of_fpm_stats_entry {
@@ -95,6 +96,7 @@ struct of_fpm_table_entry {
     uint8_t     id;
     uint32_t    nref;
     uint32_t    nfpm;
+    bool        and_match;              /* AND style match? */
     struct fpm  *fpm_data;
 };
 
