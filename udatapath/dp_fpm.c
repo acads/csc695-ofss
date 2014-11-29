@@ -371,13 +371,22 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
 
     loc_entry = fpm_get_table_entry(in_entry->id);
     fpm_id_avail = loc_entry ? TRUE : FALSE;
+    if (fpm_id_avail) {
+        /* Error out if AND match flag isn't the same as old config. */
+        if (in_entry->and_match != loc_entry->and_match) {
+            VLOG_ERR(LOG_MODULE, "FPM id %u AND flag %u doesn't match.",
+                in_entry->id, loc_entry->and_match);
+            err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_BAD_PARAMS);
+            goto error_exit;
+        }
 
-    /* Error out if the incoming ID has max matches. */
-    if (loc_entry && fpm_is_max_match_configured(loc_entry)) {
-        VLOG_ERR(LOG_MODULE, "FPM id %u has max. # of matches already.",
+        /* Error out if the incoming ID has max matches. */
+        if (fpm_is_max_match_configured(loc_entry)) {
+            VLOG_ERR(LOG_MODULE, "FPM id %u has max. # of matches already.",
                 in_entry->id);
-        err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_MAX_MATCH);
-        goto error_exit;
+            err_code = ofl_error(OFPET_EXPERIMENTER, OFFFPMC_MAX_MATCH);
+            goto error_exit;
+        }
     }
 
     if (!fpm_id_avail) {
@@ -402,10 +411,10 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
     if (fpm_id_avail) {
         loc_data->next = loc_entry->fpm_data;
         loc_entry->fpm_data = loc_data;
-        VLOG_INFO(LOG_MODULE, "New match configured for fpm id %u, nfpm %u; " \
+        VLOG_INFO(LOG_MODULE, "New match configured for fpm id %u, and %u, nfpm %u; " \
                 "offset %u, depth %u, len %u, match %s",
-                loc_entry->id, loc_entry->nfpm, 
-                loc_data->offset, loc_data->depth, 
+                loc_entry->id, loc_entry->and_match, loc_entry->nfpm,
+                loc_data->offset, loc_data->depth,
                 loc_data->len, loc_data->match);
     } else {
         loc_data->next = NULL;
@@ -416,15 +425,15 @@ dp_fpm_handle_add(struct datapath *dp UNUSED,
         
         VLOG_INFO(LOG_MODULE, "New fpm id %u, nfpm %u; " \
                 "offset %u, depth %u, len %u, match %s",
-                loc_entry->id, loc_entry->nfpm, 
-                loc_data->offset, loc_data->depth, 
+                loc_entry->id, loc_entry->nfpm,
+                loc_data->offset, loc_data->depth,
                 loc_data->len, loc_data->match);
     }
 
     return err_code;
 
 error_exit:
-    if (loc_entry)
+    if (!fpm_id_avail && loc_entry)
         free(loc_entry);
 
     return err_code;
@@ -516,11 +525,11 @@ dp_fpm_handle_logs(struct datapath *dp UNUSED,
 
         loc_entry = fpm_get_table_entry(id);
         VLOG_INFO(LOG_MODULE,
-            "fpm-stats: id %u, nfpm %u, nref %u, nref %u",
-            loc_entry->id, loc_entry->nfpm, loc_entry->nref);
+            "fpm-stats: id %u, and %u, nfpm %u, nref %u", loc_entry->id,
+            loc_entry->and_match, loc_entry->nfpm, loc_entry->nref);
         loc_data = loc_entry->fpm_data;
         while (loc_data) {
-            VLOG_INFO(LOG_MODULE, 
+            VLOG_INFO(LOG_MODULE,
                 "   offset %u, depth %u, len %u, match \"%s\", npkts %u",
                 loc_data->offset, loc_data->depth, 
                 loc_data->len, loc_data->match, loc_data->npkts);
