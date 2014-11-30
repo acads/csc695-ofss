@@ -37,6 +37,9 @@ fpm_get_fpm_id_from_pkt(struct packet *pkt);
 inline bool
 fpm_is_fpm_table(uint8_t table_id);
 
+inline uint32_t
+fpm_get_count(void);
+
 uint8_t *
 fpm_get_l7_data(struct packet *pkt);
 

@@ -163,7 +163,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 
 #ifdef OFP_FPM
         curr_table_id = pkt->table_id;
-        if (fpm_is_fpm_table(curr_table_id)) {
+        if (fpm_is_fpm_table(curr_table_id) && fpm_get_count()) {
             bool    match = FALSE;
 
             /* Fech a ptr to application payload */

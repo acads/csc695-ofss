@@ -94,7 +94,7 @@ fpm_decrement_id_ref_count(uint8_t id)
     return;
 }
 
-static inline uint32_t
+inline uint32_t
 fpm_get_count(void)
 {
     return g_fpm_table.count;
@@ -150,99 +150,6 @@ fpm_is_fpm_table(uint8_t table_id)
 {
     return ((FPM_TABLE_ID == table_id) ? TRUE : FALSE);
 }
-
-static inline bool
-fpm_do_and_match(struct of_fpm_table_entry *e, uint8_t *data)
-{
-    char        haystack[FPM_MAX_LEN + 1] = "";
-    struct fpm  *fpm_data = NULL;
-
-    /* Go over all available match strings. If a mismatch is found, return
-     * immediately.
-     */
-    fpm_data = e->fpm_data;
-    while (fpm_data) {
-        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
-        if (!strstr(haystack, fpm_data->match))
-            return FALSE;
-
-        fpm_data = fpm_data->next;
-    }
-
-    /* All patterns matched. Increment pkt hit counters on all of them. */
-    fpm_data = e->fpm_data;
-    while (fpm_data) {
-        fpm_data->npkts += 1;
-        fpm_data = fpm_data->next;
-    }
-
-    return TRUE;
-}
-
-static inline bool
-fpm_do_or_match(struct of_fpm_table_entry *e, uint8_t *data)
-{
-    char        haystack[FPM_MAX_LEN + 1] = "";
-    struct fpm  *fpm_data = NULL;
-
-    /* Go over all available match strings. If a mismatch is found, return
-     * immediately.
-     */
-    fpm_data = e->fpm_data;
-    while (fpm_data) {
-        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
-        if (strstr(haystack, fpm_data->match)) {
-            fpm_data->npkts += 1;
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-static inline bool
-fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
-{
-#if 0
-    bool                        and_match = FALSE;
-    bool                        and_match_flag = TRUE;
-    char                        haystack[FPM_MAX_LEN + 1] = "";
-    struct fpm                  *fpm_data = NULL;
-#endif
-    struct of_fpm_table_entry   *e = NULL;
-
-    e = fpm_get_table_entry(fpm_id);
-    if (!e)
-        return FALSE;
-
-    if (e->and_match)
-        return fpm_do_and_match(e, data);
-    else
-        return fpm_do_or_match(e, data);
-}
-
-#if 0
-    while (fpm_data && and_match_flag) {
-        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
-        if (strstr(haystack, fpm_data->match)) {
-            if (do_and_match) {
-                and_match_flag = TRUE;
-            } else {
-                fpm_data->npkts += 1;
-                return TRUE;
-            }
-        } else {
-            if (do_and_match)
-                break;
-        }
-        fpm_data = fpm_data->next;
-    }
-
-    if (do_and_match)
-
-    return FALSE;
-}
-#endif
 
 uint8_t *
 fpm_get_l7_data(struct packet *pkt)
@@ -318,6 +225,71 @@ fpm_get_l7_data(struct packet *pkt)
 
 error_exit:
     return NULL;
+}
+
+static inline bool
+fpm_do_and_match(struct of_fpm_table_entry *e, uint8_t *data)
+{
+    char        haystack[FPM_MAX_LEN + 1] = "";
+    struct fpm  *fpm_data = NULL;
+
+    /* Go over all available match strings. If a mismatch is found, return
+     * immediately.
+     */
+    fpm_data = e->fpm_data;
+    while (fpm_data) {
+        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
+        if (!strstr(haystack, fpm_data->match))
+            return FALSE;
+
+        fpm_data = fpm_data->next;
+    }
+
+    /* All patterns matched. Increment pkt hit counters on all of them. */
+    fpm_data = e->fpm_data;
+    while (fpm_data) {
+        fpm_data->npkts += 1;
+        fpm_data = fpm_data->next;
+    }
+
+    return TRUE;
+}
+
+static inline bool
+fpm_do_or_match(struct of_fpm_table_entry *e, uint8_t *data)
+{
+    char        haystack[FPM_MAX_LEN + 1] = "";
+    struct fpm  *fpm_data = NULL;
+
+    /* Go over all available match strings. If a mismatch is found, return
+     * immediately.
+     */
+    fpm_data = e->fpm_data;
+    while (fpm_data) {
+        memcpy(haystack, data + fpm_data->offset, fpm_data->depth);
+        if (strstr(haystack, fpm_data->match)) {
+            fpm_data->npkts += 1;
+            return TRUE;
+        }
+        fpm_data = fpm_data->next;
+    }
+
+    return FALSE;
+}
+
+static inline bool
+fpm_do_lookup(uint8_t fpm_id, uint8_t *data)
+{
+    struct of_fpm_table_entry   *e = NULL;
+
+    e = fpm_get_table_entry(fpm_id);
+    if (!e)
+        return FALSE;
+
+    if (e->and_match)
+        return fpm_do_and_match(e, data);
+    else
+        return fpm_do_or_match(e, data);
 }
 
 bool
