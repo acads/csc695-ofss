@@ -98,30 +98,49 @@ sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"33\""
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Final
 
+# Redirection rules
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 goto:1
-
-#sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 goto:2
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=30000 goto:3
-
-sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 apply:output:1
-sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=0 goto:3
-
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x806 goto:30
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=1 goto:31
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=6 goto:32
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=17 goto:33
 
+# ARP table
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=1 apply:output:2
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=2 apply:output:1
 
+# ICMP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=31,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=31,prio=35000 in_port=2 apply:output:1
+
+# TCP table
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=1 apply:output:2
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=2 apply:output:1
 
+# UDP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=35000 in_port=2 apply:output:1
+
+
+# Program rules on FPM table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 goto:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 apply:output:1
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=1,meta=0xff goto:3
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=0 goto:3
 
 # program FPM  on dpctl
-sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu
-sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 1 5 4 ncsu
-sudo utilities/dpctl unix:/tmp/s1 fpm-add 2 0 10 5 tamil
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 0
+sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
+
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 0 10 5 tamil 0
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 0
+sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
+
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 0 10 5 tamil 1
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 1
+sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
+
 sudo utilities/dpctl unix:/tmp/s1 fpm-logs
 
 
