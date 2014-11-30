@@ -1,7 +1,14 @@
-
+FPM: Support AND/OR clauses in match pattern
 
 Fix Description
 ===============
+    * Support for two types of FPM matches: regualr and exact match. 
+    * Regular match behaves like a normal OF rule. It starts at the beginning 
+      of FPM table and goes over all available FPM rules until a match is found. 
+      This doesn't require a FPM id in the packet metadata.
+    * Exact match looks into the FPM entry whose ID is given in the metadata of
+      the packet. This is useful if we know beforehand what we're looking for
+      as it saves time by not going over all teh entires in FPM table.
 
 Stats
 =====
@@ -39,4 +46,82 @@ Todo
     - Fix fpm-stats crash
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# table 0, default table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 goto:1
+
+# table 1, FPM classifier
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 goto:3
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=0 apply:output:ctrl
+
+# table 2, FPM table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 apply:output:1
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=0 apply:output:ctrl
+
+# table 3, non-FPM classifier
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x806 goto:30
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=1 goto:31
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=6 goto:32
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=17 goto:33
+
+# table 30, ARP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=2 apply:output:1
+
+# table 31, ICMP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=31,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=31,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=31,prio=35000 in_port=2 apply:output:1
+
+# table 32, TCP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=2 apply:output:1
+
+# table 33, UDP table
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=0 apply:output:ctrl
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=35000 in_port=2 apply:output:1
+
+sudo utilities/dpctl unix:/tmp/s1 stats-flow
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"0\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"1\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"2\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"2\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"30\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"31\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"32\""
+sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"33\""
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Final
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 goto:1
+
+#sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 goto:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=30000 goto:3
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 apply:output:1
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=0 goto:3
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x806 goto:30
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=1 goto:31
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=6 goto:32
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=17 goto:33
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=30,prio=35000 in_port=2 apply:output:1
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=32,prio=35000 in_port=2 apply:output:1
+
+
+# program FPM  on dpctl
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 1 5 4 ncsu
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 2 0 10 5 tamil
+sudo utilities/dpctl unix:/tmp/s1 fpm-logs
+
 
