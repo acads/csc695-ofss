@@ -1,7 +1,8 @@
 /*
- * Simple TCP echo server.
+ * Module:  tcp_echo_server.c
+ * Desc:    Simple TCP echo server.
  *
- * Author: Aravindhan Dhanasekaran <adhanas@ncsu.edu>
+ * Author:  Aravindhan Dhanasekaran <adhanas@ncsu.edu>
  */
 
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <signal.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 

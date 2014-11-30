@@ -1,7 +1,8 @@
 /*
- * Simple echo TCP client.
+ * Module:  tcp_echo_client.c
+ * Desc:    Simple echo TCP client.
  *
- * Author: Aravindhan Dhanasekaran <adhanas@ncsu.edu>
+ * Author:  Aravindhan Dhanasekaran <adhanas@ncsu.edu>
  */
 
 #include <stdio.h>
@@ -9,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
