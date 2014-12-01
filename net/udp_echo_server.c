@@ -1,6 +1,8 @@
 /* 
- * udpserver.c - A simple UDP echo server 
- * usage: udpserver <port>
+ * Module:  udp_echo_server.c
+ * Desc:    A simple UDP echo server
+ *
+ * Author:  Aravindhan Dhanasekaran <adhanas@ncsu.edu>
  */
 
 #include <stdio.h>
@@ -14,7 +16,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-/* Constats */
+/* Constants */
 #define BUF_SIZE    512
 
 /* Globals */
@@ -111,14 +113,6 @@ main(int argc, char **argv) {
         buf[nbytes] = '\0';
         printf("CLIENT: %s", buf);
 
-        /* Get client details. */
-        cli_host = gethostbyaddr((const char *) &cli_addr.sin_addr.s_addr, 
-			  sizeof(cli_addr.sin_addr.s_addr), AF_INET);
-        if (!cli_host) {
-            perror("ERROR: gethostbyaddr failed");
-            goto error_exit;
-        }
-        
         /* Echo the data back to client. */
         nbytes = sendto(g_serv_sock, buf, strlen(buf), 0, 
 	       (struct sockaddr *) &cli_addr, cli_len);

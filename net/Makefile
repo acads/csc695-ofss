@@ -19,8 +19,8 @@ TS_OBJS = tcp_echo_server.o
 TC_OBJS = tcp_echo_client.o
 US_OBJS = udp_echo_server.o
 UC_OBJS = udp_echo_client.o
-CLEAN_FILES = $(TS_OBJS) $(TC_OBJS) $(US_OBJS) $(UC_OBJS)
-#CLEAN_FILES = $(TS) $(TC) $(US) $(UC) $(TS_OBJS) $(TC_OBJS) $(US_OBJS) $(UC_OBJS)
+CLEAN_O = $(TS_OBJS) $(TC_OBJS) $(US_OBJS) $(UC_OBJS)
+CLEAN_FILES = $(TS) $(TC) $(US) $(UC) $(TS_OBJS) $(TC_OBJS) $(US_OBJS) $(UC_OBJS)
 
 CC = gcc
 DEBUG = -g
@@ -55,7 +55,9 @@ $(US_OBJS): $(US_SRCS)
 $(UC_OBJS): $(UC_SRCS)
 	$(CC) $(CFLAGS) -c $(UC_SRCS)
 
-
 clean:
 	\rm -f $(CLEAN_FILES)
+
+cleano:
+	\rm -f $(CLEAN_O)
 
