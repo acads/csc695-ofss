@@ -126,11 +126,15 @@ send_packet_to_controller(struct pipeline *pl, struct packet *pkt, uint8_t table
 void
 pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     struct flow_table *table, *next_table;
+
 #ifdef OFP_FPM
-    char    match_payload[FPM_MAX_LEN] = "";
-    uint8_t fpm_id = FPM_ALL_ID;
-    uint8_t curr_table_id = 0;
-    uint8_t *l7_data = NULL;
+    bool                fpm = FALSE;
+    bool                fpm_present = FALSE;
+    char                match_payload[FPM_MAX_LEN] = "";
+    uint8_t             fpm_id = FPM_ALL_ID;
+    uint8_t             curr_table_id = 0;
+    uint8_t             *l7_data = NULL;
+    struct flow_entry   *fpm_miss_entry = NULL;
 #endif
 
     if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
@@ -164,7 +168,7 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
 #ifdef OFP_FPM
         curr_table_id = pkt->table_id;
         if (fpm_is_fpm_table(curr_table_id) && fpm_get_count()) {
-            bool    match = FALSE;
+            fpm_present = TRUE;
 
             /* Fech a ptr to application payload */
             l7_data = fpm_get_l7_data(pkt);
@@ -182,16 +186,20 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             fpm_id = fpm_get_fpm_id_from_pkt(pkt);
             if ((FPM_ALL_ID == fpm_id) || (!fpm_id)) {
                 VLOG_INFO(LOG_MODULE, "Regular FPM.");
-                match = fpm_handle_regular_match(l7_data);
+                fpm = fpm_handle_regular_match(l7_data);
             } else {
                 VLOG_INFO(LOG_MODULE, "Exact FPM for id %u.", fpm_id);
-                match = fpm_handle_exact_match(fpm_id, l7_data);
+                fpm = fpm_handle_exact_match(fpm_id, l7_data);
             }
 
-            if (match)
+            if (fpm) {
                 VLOG_INFO(LOG_MODULE, "FPM match.");
-            else
+            } else {
                 VLOG_INFO(LOG_MODULE, "FPM miss.");
+                fpm_miss_entry = flow_table_get_table_miss_entry(table);
+                VLOG_INFO(LOG_MODULE, "FPM miss entry %u.",
+                    (fpm_miss_entry) ? TRUE : FALSE);
+            }
         }
 #endif /* OFP_FPM */
 
@@ -202,6 +210,19 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
             free(m);
         }
         entry = flow_table_lookup(table, pkt);
+
+#ifdef OFP_FPM
+        /* In case of FPM miss, assign the entry to the tabl/FPM miss entry and
+         * reset the flags. The flags will be set again during subsequent FPM
+         * processing of next packet.
+         */
+        if (fpm_present && !fpm) {
+            entry = fpm_miss_entry;
+            fpm_miss_entry = NULL;
+            fpm = fpm_present = FALSE;
+        }
+#endif /* OFP_FPM */
+
         if (entry != NULL) {
 	        if (VLOG_IS_DBG_ENABLED(LOG_MODULE)) {
                 char *m = ofl_structs_flow_stats_to_string(entry->stats, pkt->dp->exp);

@@ -251,6 +251,20 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
     }
 }
 
+#ifdef OFP_FPM
+struct flow_entry *
+flow_table_get_table_miss_entry(struct flow_table *table)
+{
+    struct flow_entry *entry =NULL;
+
+    LIST_FOR_EACH(entry, struct flow_entry, match_node,
+            &table->match_entries) {
+        if ((0 == entry->stats->priority) && (entry->match->length <= 4))
+            return entry;
+    }
+    return NULL;
+}
+#endif /* OFP_FPM */
 
 struct flow_entry *
 flow_table_lookup(struct flow_table *table, struct packet *pkt) {

@@ -74,6 +74,12 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
 struct flow_entry *
 flow_table_lookup(struct flow_table *table, struct packet *pkt);
 
+#ifdef OFP_FPM
+/* Fetches the default table miss rule, if present. */
+struct flow_entry *
+flow_table_get_table_miss_entry(struct flow_table *table);
+#endif /* OFP_FPM */
+
 /* Orders the flow table to check the timeout its flows. */
 void
 flow_table_timeout(struct flow_table *table);
