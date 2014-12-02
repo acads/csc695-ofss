@@ -253,13 +253,37 @@ flow_table_flow_mod(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool
 
 #ifdef OFP_FPM
 struct flow_entry *
-flow_table_get_table_miss_entry(struct flow_table *table)
+flow_table_fpm_get_miss_entry(struct flow_table *table)
 {
     struct flow_entry *entry =NULL;
 
     LIST_FOR_EACH(entry, struct flow_entry, match_node,
             &table->match_entries) {
         if ((0 == entry->stats->priority) && (entry->match->length <= 4))
+            return entry;
+    }
+    return NULL;
+}
+
+struct flow_entry *
+flow_table_fpm_get_miss_entry_exact(uint8_t fpm_id, struct flow_table *table)
+{
+    uint8_t                 miss_fpm_id = 0;
+    uint32_t                meta_hdr = OXM_OF_METADATA;
+    struct flow_entry       *entry =NULL;
+    struct ofl_match        *m = NULL;
+    struct ofl_match_tlv    *tlv = NULL;
+
+    miss_fpm_id = fpm_id + 1;
+    LIST_FOR_EACH(entry, struct flow_entry, match_node,
+            &table->match_entries) {
+        if (entry->match)
+            m = (struct ofl_match *) entry->match;
+        else
+            m = (struct ofl_match *) entry->stats->match;
+
+        tlv = oxm_match_lookup(meta_hdr, m);
+        if (tlv && (miss_fpm_id == *((uint8_t *) tlv->value)))
             return entry;
     }
     return NULL;
