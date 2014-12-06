@@ -140,8 +140,8 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
 
             if (*len < sizeof(*in_msg)) {
                 OFL_LOG_WARN(LOG_MODULE,
-                    "Received OFP_FPM_ADD message has invalid length, %zu.",
-                    *len);
+                    "Received OFP_FPM_ADD message has invalid length %zu, expected at least %zu.",
+                    *len, sizeof(*in_msg));
                 err_code = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                 goto error_exit;
             }
@@ -201,8 +201,8 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
 
             if (*len < sizeof(*in_msg)) {
                 OFL_LOG_WARN(LOG_MODULE,
-                    "Received OFP_FPM_LOGS message has invalid length %zu, expected at least %zu",
-                    *len, sizeof(*exp_msg));
+                    "Received OFP_FPM_LOGS message has invalid length %zu, expected at least %zu.",
+                    *len, sizeof(*in_msg));
                 err_code = ofl_error(OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
                 goto error_exit;
             }
