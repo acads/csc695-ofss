@@ -1,17 +1,29 @@
-FPM: Support AND/OR clauses in match pattern
+fpm: exact match - rewrite metadata & fetch complementary rule on miss
 
 Fix Description
 ===============
-    * Support for two types of FPM matches: regualr and exact match. 
-    * Regular match behaves like a normal OF rule. It starts at the beginning 
-      of FPM table and goes over all available FPM rules until a match is found. 
-      This doesn't require a FPM id in the packet metadata.
-    * Exact match looks into the FPM entry whose ID is given in the metadata of
-      the packet. This is useful if we know beforehand what we're looking for
-      as it saves time by not going over all teh entires in FPM table.
+    * In case of a exact-match fpm miss, set packet's metadata to (fpm_id + 1)
+      so that the packet could match on a complememtary rule (if present).
+    * Fetch the complementary rule in case of exact-match fpm miss. If not 
+      present, fetch the default table miss rule. If neither of them are 
+      available, set the match flow entry to null (drop the packet).
+      request (packet without FPM id in metadata field) is missed.
+    * New routine to go over all rules to find the complementary fpm rule for a
+      given fpm id (i.e., metadata = given_fpm_id + 1) to support the if-else
+      construct in case of exact-match fpm miss.
 
 Stats
 =====
+ udatapath/flow_table.c |   26 +++++++++++++++++++++++++-
+ udatapath/flow_table.h |    6 +++++-
+ udatapath/pipeline.c   |   42 ++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 70 insertions(+), 4 deletions(-)
+
+Tests
+=====
+    * Regualar fpm: Single, multiple OR, multiple AND tests passed.
+    * Multiple fpms: Fall thru all fpms until a match test passed.
+    * Exact match: Rewrite metadata and fetch complementary rule passed.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sudo gdb udatapath/ofdatapath
@@ -96,6 +108,15 @@ sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"32\""
 sudo utilities/dpctl unix:/tmp/s1 stats-flow | grep "{table=\"33\""
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=0
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=1
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=3
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=30
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=31
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=32
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=33
+
 # Final
 
 # Redirection rules
@@ -126,15 +147,18 @@ sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=33,prio=35000 in_port=2
 # Program rules on FPM table
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 goto:2
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6 apply:output:1
-sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=1,meta=0xff goto:3
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=1 meta=0xff goto:3
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=0 goto:3
+
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=17 goto:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=17 apply:output:1
 
 # program FPM  on dpctl
 sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 0
 sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
 
 sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 0 10 5 tamil 0
-sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 0
+sudo utilities/dpctl unix:/tmp/s1 fpm-add 2 2 10 4 ncsu 0
 sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
 
 sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 0 10 5 tamil 1
@@ -142,5 +166,42 @@ sudo utilities/dpctl unix:/tmp/s1 fpm-add 1 2 10 4 ncsu 1
 sudo utilities/dpctl unix:/tmp/s1 fpm-del 1
 
 sudo utilities/dpctl unix:/tmp/s1 fpm-logs
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=17 meta:0x1 goto:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35001 in_port=2,eth_type=0x0800,ip_proto=17,meta=0x2 
+
+
+
++        fpm_send_msg_log(dp, ofproto = ofp, ofp_parser = parser)
++
++        fpm_id = 1
++        start = 2
++        end = 10
++        length = 4
++        match = "ncsu"
++        match_str = bytearray(32)
++        struct.pack_into('32s', match_str, 4, match)
++        match_len = len(match)
++        fpm_id = struct.pack("B", fpm_id)
++        start = struct.pack("!I", start)
++        end = struct.pack("!I", end)
++        length = struct.pack("!I", length)
++        #match += struct.pack("!4s", match)
++        match_str += struct.pack("!s", match_str)
++#match += struct.pack("!" + ("B" * match_len), *map(ord, match))
++#epb_search_value = struct.pack("!"+("B"*size), *map(ord,url))
++        msg = fpm_id + start + end + length + match
++        print "id ", len(fpm_id)
++        print "start ", len(start), start
++        print "end ", len(end)
++        print "length ", len(length)
++        print "match ", len(match)
++        print "total ", len(msg)
++        fpm_send_msg_add(dp, ofproto = ofp, ofp_parser = parser, ctrl_msg = msg)
++        #exp_msg = parser.OFPExperimenter(dp, 0x00ABCDEF, 5, "")
+                 #"hellotherehellotherhellotherehellotherehellotherhellothere")
+-        dp.send_msg(exp_msg)
++        #dp.send_msg(exp_msg)
 
 
