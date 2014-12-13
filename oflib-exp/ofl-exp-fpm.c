@@ -283,7 +283,7 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
     char                            *str = NULL;
     size_t                          str_size;
     FILE                            *stream = NULL;
-    uint8_t                         id = 0;
+    uint32_t                        id = 0;
     struct of_fpm_entry             *entry = NULL;
     struct ofl_exp_fpm_msg          *exp_msg = NULL;
     struct ofl_exp_fpm_msg_header   *exp_hdr = NULL;
@@ -316,7 +316,7 @@ ofl_exp_fpm_msg_to_string(struct ofl_msg_experimenter *msg)
             break;
 
         case OFP_FPM_STAT: {
-            uint8_t                             id = 0;
+            uint32_t                            id = 0;
             struct ofl_exp_fpm_stats_request    *exp_req = NULL;
 
             exp_req = (struct ofl_exp_fpm_stats_request *) msg;

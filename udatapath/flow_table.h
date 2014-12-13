@@ -81,7 +81,7 @@ flow_table_fpm_get_miss_entry(struct flow_table *table);
 
 /* Fetches the complementary FPM rule, if presnet. */
 struct flow_entry *
-flow_table_fpm_get_miss_entry_exact(uint8_t fpm_id, struct flow_table *table);
+flow_table_fpm_get_miss_entry_exact(uint32_t fpm_id, struct flow_table *table);
 #endif /* OFP_FPM */
 
 /* Orders the flow table to check the timeout its flows. */

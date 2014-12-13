@@ -29,7 +29,7 @@ struct ofl_exp_fpm_msg {
 
 struct ofl_exp_fpm_stats_request {
     struct ofl_exp_fpm_msg_header   fpm_exp_header;
-    uint8_t                         id;
+    uint32_t                        id;
 };
 
 struct ofl_exp_fpm_stats_reply {

@@ -150,7 +150,7 @@ flow_table_add(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool chec
      * the FPM id in the global FPM table.
      */
     {
-        uint8_t fpm_id = FPM_ALL_ID;
+        uint32_t fpm_id = FPM_ALL_ID;
 
         if (fpm_is_fpm_table(table->stats->table_id)) {
 
@@ -205,7 +205,7 @@ flow_table_delete(struct flow_table *table, struct ofl_msg_flow_mod *mod, bool s
                  * the FPM id in the global FPM table.
                  */
                 {
-                    uint8_t fpm_id = FPM_ALL_ID;
+                    uint32_t fpm_id = FPM_ALL_ID;
 
                     if (fpm_is_fpm_table(table->stats->table_id)) {
                         fpm_id = fpm_get_fpm_id_from_fmod(mod);
@@ -266,9 +266,9 @@ flow_table_fpm_get_miss_entry(struct flow_table *table)
 }
 
 struct flow_entry *
-flow_table_fpm_get_miss_entry_exact(uint8_t fpm_id, struct flow_table *table)
+flow_table_fpm_get_miss_entry_exact(uint32_t fpm_id, struct flow_table *table)
 {
-    uint8_t                 miss_fpm_id = 0;
+    uint32_t                miss_fpm_id = 0;
     uint32_t                meta_hdr = OXM_OF_METADATA;
     struct flow_entry       *entry =NULL;
     struct ofl_match        *m = NULL;

@@ -312,7 +312,7 @@ struct ofl_msg_multipart_request_queue {
 #ifdef OFP_FPM
 struct ofl_msg_multipart_request_fpm {
     struct ofl_msg_multipart_request_header header; /* OFPMP_FPM */
-    uint8_t                                 id;
+    uint32_t                                id;
 };
 #endif /* OFP_FPM */
 

@@ -53,7 +53,7 @@ OFP_ASSERT(sizeof(struct of_fpm_header) % 4 == 0);
 
 /* FPM table entry */
 struct of_fpm_entry {
-    uint8_t     id;                     /* FPM ID           */
+    uint32_t    id;                     /* FPM ID           */
     uint32_t    offset;                 /* start offset     */
     uint32_t    depth;                  /* end offset       */
     uint32_t    len;                    /* bytes to match   */
@@ -62,7 +62,7 @@ struct of_fpm_entry {
 };
 
 struct of_fpm_stats_entry {
-    uint8_t     id;                     /* FPM ID                   */
+    uint32_t    id;                     /* FPM ID                   */
     uint32_t    offset;                 /* start offset             */
     uint32_t    len;                    /* bytes to match           */
     char        match[FPM_MAX_LEN + 1]; /* what to match?           */
@@ -79,7 +79,7 @@ OFP_ASSERT(sizeof(struct ofl_exp_msg) % 4 == 0);
 
 /* FPM stats request msg */
 struct of_fpm_stats_request {
-    uint8_t                 id;
+    uint32_t id;
 };
 
 struct fpm {
@@ -93,7 +93,7 @@ struct fpm {
 
 /* FPM entry in a table */
 struct of_fpm_table_entry {
-    uint8_t     id;
+    uint32_t    id;
     uint32_t    nref;
     uint32_t    nfpm;
     bool        and_match;              /* AND style match? */

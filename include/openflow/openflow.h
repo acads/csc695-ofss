@@ -1235,7 +1235,7 @@ OFP_ASSERT(sizeof(struct ofp_queue_stats) == 40);
 
 #ifdef OFP_FPM
 struct ofp_fpm_stats_request {
-    uint8_t id; /* FPM ID, FPM_ALL_ID for all available IDs */
+    uint32_t id; /* FPM ID, FPM_ALL_ID for all available IDs */
 };
 #endif /* OFP_FPM */
 

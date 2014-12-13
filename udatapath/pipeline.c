@@ -131,9 +131,9 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
     bool                fpm = FALSE;
     bool                fpm_present = FALSE;
     char                match_payload[FPM_MAX_LEN] = "";
-    uint8_t             fpm_id = FPM_ALL_ID;
     uint8_t             curr_table_id = 0;
     uint8_t             *l7_data = NULL;
+    uint32_t            fpm_id = FPM_ALL_ID;
     struct flow_entry   *fpm_miss_entry = NULL;
 #endif
 
