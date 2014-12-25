@@ -51,7 +51,7 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             loc_msg->fpm_header.subtype = htonl(exp_hdr->type);
 
             loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
-            loc_entry->id = exp_msg->fpm_entry->id;
+            loc_entry->id = htonl(exp_msg->fpm_entry->id);
             loc_entry->offset = htonl(exp_msg->fpm_entry->offset);
             loc_entry->depth = htonl(exp_msg->fpm_entry->depth);
             loc_entry->len = htonl(exp_msg->fpm_entry->len);
@@ -76,7 +76,7 @@ ofl_exp_fpm_msg_pack(struct ofl_msg_experimenter *msg, uint8_t **buf,
             loc_msg->fpm_header.subtype = htonl(exp_hdr->type);
 
             loc_entry = (struct of_fpm_entry *) &loc_msg->fpm_entry;
-            loc_entry->id = exp_msg->fpm_entry->id;
+            loc_entry->id = htonl(exp_msg->fpm_entry->id);
             break;
         }
 
@@ -156,7 +156,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             exp_msg->header.type = ntohl(in_msg->fpm_header.subtype);
 
             exp_msg->fpm_entry = exp_entry;
-            exp_entry->id = in_msg->fpm_entry.id;
+            exp_entry->id = ntohl(in_msg->fpm_entry.id);
             exp_entry->offset = ntohl(in_msg->fpm_entry.offset);
             exp_entry->depth = ntohl(in_msg->fpm_entry.depth);
             exp_entry->len = ntohl(in_msg->fpm_entry.len);
@@ -190,7 +190,7 @@ ofl_exp_fpm_msg_unpack(struct ofp_header *oh, size_t *len,
             exp_msg->header.type = ntohl(in_msg->fpm_header.subtype);
 
             exp_msg->fpm_entry = exp_entry;
-            exp_entry->id = in_msg->fpm_entry.id;
+            exp_entry->id = ntohl(in_msg->fpm_entry.id);
 
             *msg = (struct ofl_msg_experimenter *) exp_msg;
             return 0;
