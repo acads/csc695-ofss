@@ -158,6 +158,9 @@ fpm_get_l7_data(struct packet *pkt)
     uint8_t             *tmp = NULL;
     uint8_t             ip_proto = 0;
     uint16_t            eth_type = 0;
+    uint32_t            pkt_len = 0;
+    uint32_t            ip_hdr_len = 0;
+    uint32_t            tcp_hdr_len = 0;
     struct eth_header   *eth_hdr = NULL;
     struct ip_header    *ip_hdr = NULL;
     struct ipv6_header  *ip6_hdr = NULL;
@@ -179,7 +182,9 @@ fpm_get_l7_data(struct packet *pkt)
     eth_type = ntohs(eth_hdr->eth_type);
     if (ETH_TYPE_IP == eth_type) {
         ip_hdr = (struct ip_header *) tmp;
+        ip_hdr_len = sizeof(*ip_hdr);
         tmp += sizeof(*ip_hdr);
+        pkt_len = htons(ip_hdr->ip_tot_len);
         ip_proto = ip_hdr->ip_proto;
     } else if (ETH_TYPE_IPV6 == eth_type) {
         ip6_hdr = (struct ipv6_header *) tmp;
@@ -204,7 +209,15 @@ fpm_get_l7_data(struct packet *pkt)
 
         case IP_TYPE_TCP:
             tcp_hdr = (struct tcp_header *) tmp;
+            tcp_hdr_len = (TCP_OFFSET(tcp_hdr->tcp_ctl) * 4);
+            if ((tcp_hdr_len + ip_hdr_len) == pkt_len) {
+                /* This TCP packet doesn't have a payload: a SYN/FIN packet
+                 * proabably. Let it go.
+                 */
+                return NULL;
+            }
             tmp += (TCP_OFFSET(tcp_hdr->tcp_ctl) * 4);
+
             VLOG_INFO(LOG_MODULE, "tcp_sport: %05u", ntohs(tcp_hdr->tcp_src));
             VLOG_INFO(LOG_MODULE, "tcp_dport: %05u", ntohs(tcp_hdr->tcp_dst));
             break;

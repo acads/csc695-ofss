@@ -179,66 +179,71 @@ pipeline_process_packet(struct pipeline *pl, struct packet *pkt) {
                 VLOG_INFO(LOG_MODULE, "pipleine: l7 data found.");
                 memcpy(&match_payload, l7_data, FPM_MAX_LEN);
                 VLOG_INFO(LOG_MODULE, "Payload at offset: %s", match_payload);
-            } else {
-                VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
-            }
 
-            /* Call appropriate regular/exact match handlers based on the
-             * availability of FPM id on the packet.
-             */
-            fpm_id = fpm_get_fpm_id_from_pkt(pkt);
-            if ((FPM_ALL_ID == fpm_id) || (!fpm_id)) {
-                exact_fpm_flag = FALSE;
-                VLOG_INFO(LOG_MODULE, "Regular FPM.");
-                fpm = fpm_handle_regular_match(l7_data);
-            } else {
-                exact_fpm_flag = TRUE;
-                VLOG_INFO(LOG_MODULE, "Exact FPM for id %u.", fpm_id);
-                fpm = fpm_handle_exact_match(fpm_id, l7_data);
-            }
-
-            if (fpm) {
-                VLOG_INFO(LOG_MODULE, "FPM match.");
-            } else {
-                /* FPM miss. More stuffs to do.
-                 *
-                 * Set the fpm_miss_entry to the miss rule: either fpm
-                 * complementary rule (if applicable and available) or default
-                 * table miss rule or NULL (if neither of them is available)
-                 *
-                 * Also, in case of an exact match, rewrite the metadata with
-                 * (fpm_id + 1) so that it could match the complementary
-                 * rule, if one is programmed.
+                /* Call appropriate regular/exact match handlers based on the
+                 * availability of FPM id on the packet.
                  */
-                VLOG_INFO(LOG_MODULE, "FPM miss.");
-                if (exact_fpm_flag) {
-                    struct ofl_match_tlv *match_tlv_iter = NULL;
-
-                    HMAP_FOR_EACH_WITH_HASH(match_tlv_iter,
-                        struct ofl_match_tlv, hmap_node,
-                        hash_int(OXM_OF_METADATA, 0),
-                        &(pkt->handle_std->match.match_fields)) {
-                            uint64_t *metadata =
-                                (uint64_t *) match_tlv_iter->value;
-                            *metadata = fpm_id + 1;
-                        VLOG_INFO(LOG_MODULE, "FPM id set to %u.", fpm_id + 1);
-                    }
-
-                    fpm_miss_entry =
-                        flow_table_fpm_get_miss_entry_exact(fpm_id, table);
-
-                    if (fpm_miss_entry) {
-                        VLOG_INFO(LOG_MODULE,
-                            "Complementary rule for FPM id %u.", fpm_id);
-                    }
-
-                    if (!fpm_miss_entry)
-                        fpm_miss_entry = flow_table_fpm_get_miss_entry(table);
+                fpm_id = fpm_get_fpm_id_from_pkt(pkt);
+                if ((FPM_ALL_ID == fpm_id) || (!fpm_id)) {
+                    exact_fpm_flag = FALSE;
+                    VLOG_INFO(LOG_MODULE, "Regular FPM.");
+                    fpm = fpm_handle_regular_match(l7_data);
                 } else {
-                    fpm_miss_entry = flow_table_fpm_get_miss_entry(table);
+                    exact_fpm_flag = TRUE;
+                    VLOG_INFO(LOG_MODULE, "Exact FPM for id %u.", fpm_id);
+                    fpm = fpm_handle_exact_match(fpm_id, l7_data);
                 }
-                VLOG_INFO(LOG_MODULE, "FPM miss entry %u.",
-                    (fpm_miss_entry) ? TRUE : FALSE);
+
+                if (fpm) {
+                    VLOG_INFO(LOG_MODULE, "FPM match.");
+                } else {
+                    /* FPM miss. More stuffs to do.
+                     *
+                     * Set the fpm_miss_entry to the miss rule: either fpm
+                     * complementary rule (if applicable and available) or
+                     * default table miss rule or NULL (if neither of them is 
+                     * available).
+                     *
+                     * Also, in case of an exact match, rewrite the metadata
+                     * with (fpm_id + 1) so that it could match the 
+                     * complementary rule, if one is programmed.
+                     */
+                    VLOG_INFO(LOG_MODULE, "FPM miss.");
+                    if (exact_fpm_flag) {
+                        struct ofl_match_tlv *match_tlv_iter = NULL;
+
+                        HMAP_FOR_EACH_WITH_HASH(match_tlv_iter,
+                            struct ofl_match_tlv, hmap_node,
+                            hash_int(OXM_OF_METADATA, 0),
+                            &(pkt->handle_std->match.match_fields)) {
+                                uint64_t *metadata =
+                                    (uint64_t *) match_tlv_iter->value;
+                                *metadata = fpm_id + 1;
+                            VLOG_INFO(LOG_MODULE, "FPM id set to %u.",
+                                    fpm_id + 1);
+                        }
+
+                        fpm_miss_entry =
+                            flow_table_fpm_get_miss_entry_exact(fpm_id, table);
+
+                        if (fpm_miss_entry) {
+                            VLOG_INFO(LOG_MODULE,
+                                "Complementary rule for FPM id %u.", fpm_id);
+                        }
+
+                        if (!fpm_miss_entry)
+                            fpm_miss_entry =
+                                flow_table_fpm_get_miss_entry(table);
+                    } else {
+                        fpm_miss_entry = flow_table_fpm_get_miss_entry(table);
+                    }
+                    VLOG_INFO(LOG_MODULE, "FPM miss entry %u.",
+                        (fpm_miss_entry) ? TRUE : FALSE);
+                }
+            } else {
+                /* Probably a TCP SYN packet. Just let it pass. */
+                fpm_present = FALSE;
+                VLOG_INFO(LOG_MODULE, "pipleine: l7 data not found.");
             }
         }
 #endif /* OFP_FPM */
