@@ -1,0 +1,92 @@
+# Simple exchange between ports 1 & 2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=0,prio=35000 in_port=1 apply:output:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=0,prio=35000 in_port=2 apply:output:1
+
+
+# Default table (0)
+# Send all traffic to table 
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=0,prio=35000 goto:1
+
+
+# FPM classifer table (1)
+# Redirects traffic requiring FPM to FPM table and all others to non-FPM table
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=1,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6,tcp_dst=8080 goto:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=1,prio=30000 goto:3
+
+
+# FPM table (2)
+# Required FPM rules and regular OF flows. Non-matching traffic are dropped.
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=2,prio=35000 in_port=2,eth_type=0x0800,ip_proto=6,tcp_dst=8080 apply:output:1
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=2,prio=1 meta=0xff 
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=2,prio=0 
+utilities/dpctl tcp:20.0.0.1:6653 fpm-add 1 5 25 11 hello-world 0
+utilities/dpctl tcp:20.0.0.1:6653 fpm-logs
+
+
+# Non-FPM classifier table (3)
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=3,prio=35000 eth_type=0x806 goto:30
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=1 goto:31
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=6 goto:32
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=3,prio=35000 eth_type=0x800,ip_proto=17 goto:33
+
+
+# ARP table (30)
+# Required flows for ARP resolution
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=30,prio=35000 in_port=1 apply:output:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=30,prio=35000 in_port=2 apply:output:1
+
+
+# ICMP table (31)
+# Required flows for ICMP pass-through
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=31,prio=35000 in_port=1 apply:output:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=31,prio=35000 in_port=2 apply:output:1
+
+
+# TCP table (32)
+# Required flows for TCP traffic pass through
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=32,prio=35000 in_port=1 apply:output:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=32,prio=35000 in_port=2 apply:output:1
+
+
+# UDP table (33)
+# Required flows for UDP traffic pass through
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=33,prio=35000 in_port=1 apply:output:2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=add,table=33,prio=35000 in_port=2 apply:output:1
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# View installed flows
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"0\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"1\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"2\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"2\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"30\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"31\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"32\""
+utilities/dpctl tcp:20.0.0.1:6653 stats-flow | grep "{table=\"33\""
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Delete installed flows
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=0
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=1
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=2
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=3
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=30
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=31
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=32
+utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=33
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+wget http://18.0.0.2:8080/home/adhanas/695/firewall/hello-world.html
+wget http://18.0.0.2:8080/hello-world.html
+
+sudo secchan/ofprotocol ptcp:6653 tcp:20.0.0.2:6653 --fail closed --listen=ptcp:6634 --log-file=/tmp/ofp.log
+sudo udatapath/ofdatapath -i eth3,eth6 ptcp:6653 -d abcdefabcdef
+
+m -python SimpleHTTPServer 8080
+
+ryu-manager --ofp-listen-host 20.0.0.2 --ofp-tcp-listen-port 6653 --verbose
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

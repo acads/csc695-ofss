@@ -57,6 +57,9 @@ Todo
 Todo
     - Fix fpm-stats crash
 
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=1, apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0 in_port=2, apply:output:1
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # table 0, default table
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=0 apply:output:ctrl
@@ -117,7 +120,10 @@ sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=31
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=32
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=del,table=33
 
-# Final
+# Simple port exchange rules
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 in_port=1 apply:output:2
+sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 in_port=2 apply:output:1
+
 
 # Redirection rules
 sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=0,prio=35000 goto:1
@@ -205,3 +211,140 @@ sudo utilities/dpctl unix:/tmp/s1 flow-mod cmd=add,table=2,prio=35001 in_port=2,
 +        #dp.send_msg(exp_msg)
 
 
+
+  --ofp-listen-host OFP_LISTEN_HOST
+                        openflow listen host
+  --ofp-ssl-listen-port OFP_SSL_LISTEN_PORT
+                        openflow ssl listen port
+  --ofp-tcp-listen-port OFP_TCP_LISTEN_PORT
+                        openflow tcp listen port
+
+
+XM_OF_IN_PORT
+/* Switch input port. */
+Y
+OXM_OF_IN_PHY_PORT
+/* Switch physical input port. */
+O
+OXM_OF_METADATA
+/* Metadata passed between tables. */
+O
+OXM_OF_ETH_DST
+/* Ethernet destination address. */
+Y
+OXM_OF_ETH_SRC
+/* Ethernet source address. */
+Y
+OXM_OF_ETH_TYPE
+/* Ethernet frame type. */
+Y
+OXM_OF_VLAN_VID
+/* VLAN id. */
+O
+Y
+OXM_OF_VLAN_PCP
+/* VLAN priority. */
+O
+Y
+OXM_OF_IP_DSCP
+/* IP DSCP (6 bits in ToS field). */
+O
+Y
+OXM_OF_IP_ECN
+/* IP ECN (2 bits in ToS field). */
+O
+N
+OXM_OF_IP_PROTO
+/* IP protocol. */
+Y
+OXM_OF_IPV4_SRC
+/* IPv4 source address. */
+Y
+OXM_OF_IPV4_DST
+/* IPv4 destination address. */
+Y
+OXM_OF_TCP_SRC
+/* TCP source port. */
+Y
+OXM_OF_TCP_DST
+/* TCP destination port. */
+Y
+OXM_OF_UDP_SRC
+/* UDP source port. */
+Y
+OXM_OF_UDP_DST
+/* UDP destination port. */
+Y
+OXM_OF_SCTP_SRC
+/* SCTP source port. */
+O
+N
+OXM_OF_SCTP_DST
+/* SCTP destination port. */
+O
+N
+OXM_OF_ICMPV4_TYPE
+/* ICMP type. */
+O
+Y
+OXM_OF_ICMPV4_CODE
+/* ICMP code. */
+O
+Y
+OXM_OF_ARP_OP
+/* ARP opcode. */
+O
+Y
+OXM_OF_ARP_SPA
+/* ARP source IPv4 address. */
+O
+Y
+OXM_OF_ARP_TPA
+/* ARP target IPv4 address. */
+O
+Y
+OXM_OF_ARP_SHA
+/* ARP source hardware address. */
+O
+N
+OXM_OF_ARP_THA
+/* ARP target hardware address. */
+O
+N
+OXM_OF_IPV6_SRC
+/* IPv6 source address. */
+Y
+OXM_OF_IPV6_DST
+/* IPv6 destination address. */
+Y
+OXM_OF_IPV6_FLABEL
+/* IPv6 Flow Label */
+O
+N
+OXM_OF_ICMPV6_TYPE
+/* ICMPv6 type. */
+O
+N
+OXM_OF_ICMPV6_CODE
+/* ICMPv6 code. */
+O
+N
+OXM_OF_IPV6_ND_TARGET
+/* Target address for ND. */
+O
+N
+OXM_OF_IPV6_ND_SLL
+/* Source link-layer for ND. */
+O
+N
+OXM_OF_IPV6_ND_TLL
+/* Target link-layer for ND. */
+O
+N
+OXM_OF_MPLS_LABEL
+/* MPLS label. */
+O
+N
+OXM_OF_MPLS_TC
+/* MPLS TC. */
+O
