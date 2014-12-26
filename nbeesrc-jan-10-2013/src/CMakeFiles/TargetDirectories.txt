@@ -1,8 +1,0 @@
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbnetvm/tools/makenetilscanner/CMakeFiles/makenetilscanner.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbnetvm/tools/makeopcodetable/CMakeFiles/makeopcodetable.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbee/CMakeFiles/nbee.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbnetvm/CMakeFiles/nbnetvm.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbpflcompiler/CMakeFiles/nbpflcompiler.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbprotodb/CMakeFiles/nbprotodb.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbsockutils/CMakeFiles/nbsockutils.dir
-/home/adhanas/695/csc695-ofss-dev/nbeesrc-jan-10-2013/src/nbnetvm/tools/netvmburg/CMakeFiles/netvmburg.dir
