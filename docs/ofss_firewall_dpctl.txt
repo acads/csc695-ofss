@@ -83,10 +83,16 @@ utilities/dpctl tcp:20.0.0.1:6653 flow-mod cmd=del,table=33
 wget http://18.0.0.2:8080/home/adhanas/695/firewall/hello-world.html
 wget http://18.0.0.2:8080/hello-world.html
 
+sudo udatapath/ofdatapath -i eth3,eth6 punix:/tmp/ofss -d abcdefabcdef
+sudo secchan/ofprotocol unix:/tmp/ofss tcp:20.0.0.2:6653 --fail closed --listen=ptcp:6653 --log-file=/tmp/ofp.log
+
+sudo secchan/ofprotocol ptcp:6653 tcp:20.0.0.2:6653 --fail closed --log-file=/tmp/ofp.log -v --inactivity-probe=120 --max-backoff=120
+sudo secchan/ofprotocol unix:/tmp/ofss tcp:20.0.0.2:6653 --fail closed --listen=ptcp:6653 --log-file=/tmp/ofp.log
+sudo secchan/ofprotocol tcp:20.0.0.2:6653 --fail closed --log-file=/tmp/ofp.log
 sudo secchan/ofprotocol ptcp:6653 tcp:20.0.0.2:6653 --fail closed --listen=ptcp:6634 --log-file=/tmp/ofp.log
 sudo udatapath/ofdatapath -i eth3,eth6 ptcp:6653 -d abcdefabcdef
 
-m -python SimpleHTTPServer 8080
+python -m SimpleHTTPServer 8080
 
-ryu-manager --ofp-listen-host 20.0.0.2 --ofp-tcp-listen-port 6653 --verbose
+ryu-manager --ofp-tcp-listen-port 6653 --verbose
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

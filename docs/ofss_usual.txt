@@ -26,6 +26,11 @@ Tests
     * Exact match: Rewrite metadata and fetch complementary rule passed.
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/adhanas/csc695-ofss-dev/secchan/ofprotocol unix:/tmp/s1 tcp:127.0.0.1:6633 --fail=closed  --listen=ptcp:6634  1> /tmp/s1-ofp.log 2>/tmp/s1-ofp.log & printf "\001%d\012" $! 
+
+/home/adhanas/csc695-ofss-dev/udatapath/ofdatapath -i s1-eth1,s1-eth2,s1-eth3 punix:/tmp/s1 -d 000000000001  1> /tmp/s1-ofd.log 2> /tmp/s1-ofd.log & printf "\001%d\012" $! 
+
+
 sudo gdb udatapath/ofdatapath
 break udatapath/dp_fpm.c:184
 break oflib/ofl-messages-pack.c:736
